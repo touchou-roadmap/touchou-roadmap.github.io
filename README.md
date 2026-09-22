@@ -2,8 +2,8 @@
 
 目標を山の図にして、小目標とタスクに分け、紙に刷って貼れるロードマップです。
 
-- 使う: https://hiroshit164820-create.github.io/touchou-roadmap/
-- 使いかた: https://hiroshit164820-create.github.io/touchou-roadmap-manual/
+- 使う: https://touchou-roadmap.github.io/
+- 使いかた: https://touchou-roadmap.github.io/manual/
 
 登録は要りません。書いた内容は、開いた端末のブラウザの中にだけ保存されます（どこにも送られません）。
 控えを取るときや別の端末で続けるときは、ページのいちばん下の「ファイルに書き出す」「ファイルから読み込む」を使ってください。
