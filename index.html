@@ -1,0 +1,2883 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="目標を山の図にして、小目標とタスクに分け、紙に刷って貼れるロードマップ。登録不要・無料。書いた内容はこの端末のブラウザにだけ保存されます。">
+<meta name="theme-color" content="#F1F4F0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9B%B0%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="登頂ロードマップ">
+<meta property="og:description" content="目標を山の図にして、小目標とタスクに分け、紙に刷って貼れるロードマップ。登録不要・無料。書いた内容はこの端末のブラウザにだけ保存されます。">
+<meta property="og:url" content="https://hiroshit164820-create.github.io/touchou-roadmap/">
+<title>登頂ロードマップ</title>
+<link data-app rel="preconnect" href="https://fonts.googleapis.com">
+<link data-app rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link data-app rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style data-app>
+/* 配色の決めごと
+   1. 状態の色（青=できた／黄=早めにやる／赤=急ぎ／灰=これから）は最初に決めた取り決め。動かさない
+   2. ブランドの差し色は状態の色と必ず別の色にする。以前は差し色が金色で
+      「早めにやる」の黄色と見分けが付かず、達成なのか急ぎなのか読めなかった
+   3. 濃い色の上に白文字を置くのは、コントラスト比4.5:1を満たす色だけ。
+      黄色の上は白では読めないので必ず濃い文字を載せる */
+:root{
+  --paper:#F1F4F0; --card:#FFFFFF; --ink:#22303A; --sub:#56676F;
+  --line:#D5DED8; --ridge:#33526A; --ridge-soft:rgba(51,82,106,.10);
+  --ridge-far:rgba(51,82,106,.05);
+  --accent:#276B4E; --accent-soft:rgba(39,107,78,.13); --on-accent:#FFFFFF;
+  --st-done:#1F5FA8; --st-soon:#E0AC1E; --st-urgent:#AF3A2C; --st-todo:#8C9AA2;
+  --on-done:#FFFFFF; --on-soon:#22303A; --on-urgent:#FFFFFF; --on-todo:var(--sub);
+  --btn-face:var(--ridge); --btn-ink:#FFFFFF;
+  --focus:#1F5FA8;
+  /* できた・達成の明滅に使う光。状態の色（青）と差し色（緑）を薄めたもの */
+  --done-glow:rgba(31,95,168,.38); --accent-glow:rgba(39,107,78,.38);
+  /* 文字の大きさは5段だけ。増やすと重要度の差が読めなくなる */
+  --t-cap:12.5px; --t-sm:14px; --t-md:16px; --t-lg:18px;
+  --t-title:clamp(23px,3.4vw,31px);
+  /* 角の丸みも3段だけ。全部同じにすると階層が平らに見える */
+  --r-card:10px; --r-ctrl:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#121A1E; --card:#1B242A; --ink:#E5EBEC; --sub:#9DAEB6;
+    --line:#2C383F; --ridge:#8CB2C8; --ridge-soft:rgba(140,178,200,.14);
+    --ridge-far:rgba(140,178,200,.07);
+    --accent:#5FBE8C; --accent-soft:rgba(95,190,140,.18); --on-accent:#0C1E15;
+    --st-done:#6BA9E8; --st-soon:#E3B336; --st-urgent:#E8867A; --st-todo:#77878F;
+    --on-done:#08192B; --on-soon:#221B05; --on-urgent:#2A0F0B; --on-todo:var(--sub);
+    --btn-face:#8CB2C8; --btn-ink:#0E1F29;
+    --focus:#6BA9E8;
+    --done-glow:rgba(107,169,232,.45); --accent-glow:rgba(95,190,140,.45);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#121A1E; --card:#1B242A; --ink:#E5EBEC; --sub:#9DAEB6;
+  --line:#2C383F; --ridge:#8CB2C8; --ridge-soft:rgba(140,178,200,.14);
+  --ridge-far:rgba(140,178,200,.07);
+  --accent:#5FBE8C; --accent-soft:rgba(95,190,140,.18); --on-accent:#0C1E15;
+  --st-done:#6BA9E8; --st-soon:#E3B336; --st-urgent:#E8867A; --st-todo:#77878F;
+  --on-done:#08192B; --on-soon:#221B05; --on-urgent:#2A0F0B; --on-todo:var(--sub);
+  --btn-face:#8CB2C8; --btn-ink:#0E1F29;
+  --focus:#6BA9E8;
+  --done-glow:rgba(107,169,232,.45); --accent-glow:rgba(95,190,140,.45);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  font-size:16px; line-height:1.75;   /* 日本語本文。中高年も読む前提でこの値を下げない */
+}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 16px 48px}
+/* スマホ：前置きを詰めて、図とカードに画面を使う */
+@media(max-width:560px){
+  .wrap{padding:14px 14px 40px}
+  .pagefoot{gap:10px 12px}
+  .now{padding:12px 12px 14px;margin-top:12px}
+  .nextbar{margin-top:12px}
+  .chartbox{margin-top:0}
+  .cards{gap:10px;margin-top:12px}
+  .panel{padding:14px 15px}
+}
+/* ページの下の帯：題名・最終更新と、編集・印刷のボタン */
+.pagefoot{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;justify-content:space-between;
+  margin-top:28px;padding-top:18px;border-top:1px solid var(--line)}
+h1{font-family:"Zen Old Mincho","Hiragino Mincho ProN","Yu Mincho",serif;font-weight:900;
+   font-size:var(--t-lg);margin:0;letter-spacing:.03em;text-wrap:balance;line-height:1.35}
+/* 紙のときだけ出す見出し（画面では下の帯に題名がある） */
+.printhead{display:none}
+.subttl{color:var(--sub);font-size:var(--t-cap);margin-top:3px}
+.hdr-right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+/* 押せるものは高さ44px以上。指で押せない大きさにしない */
+button{font-family:inherit;font-size:var(--t-sm);cursor:pointer;border-radius:var(--r-ctrl);
+  border:1px solid var(--line);background:var(--card);color:var(--ink);
+  padding:0 16px;min-height:44px;display:inline-flex;align-items:center;gap:7px}
+button:hover{border-color:var(--sub)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+button.primary{background:var(--btn-face);border-color:var(--btn-face);color:var(--btn-ink);font-weight:700}
+button.warn{color:var(--st-urgent);border-color:var(--st-urgent)}
+button.armed{background:var(--st-urgent);border-color:var(--st-urgent);color:var(--on-urgent)}
+/* いまの位置のまとめ（2026-09-19 本人指示「今どこまでやって何ができているのか、
+   何ができていなくてこれからやるべきことは何なのかが分かるように」）。
+   1行目＝いまどの山か、2行目＝山ごとの進み、3行目＝できた／急ぎ・早めに／これからの数。
+   数を押すと、その中身の一覧が開く。紙には出さない（図がページから押し出されるため） */
+.now{margin-top:14px;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r-card);padding:14px 16px 16px}
+.nowline{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;line-height:1.6}
+.nowtag{flex:none;font-size:var(--t-cap);font-weight:700;color:var(--on-accent);
+  background:var(--accent);border-radius:999px;padding:2px 11px;letter-spacing:.05em}
+.nowsub{color:var(--sub);font-size:var(--t-sm)}
+button.suggest{border:2px solid var(--accent);color:var(--accent);font-weight:700}
+button.suggest:hover{background:var(--accent);color:var(--on-accent)}
+/* 山ごとの進み。図と同じ左→右の順。いま登っている山だけ緑の枠で囲む */
+.rail{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px;
+  grid-template-columns:repeat(var(--n,3),minmax(0,1fr)) minmax(0,.85fr)}
+.seg{display:flex;min-width:0}
+/* 横に並ぶとき：1段目に番号と進み、2段目に名前、3段目に棒 */
+button.segbtn{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;
+  grid-template-areas:"num n" "t t" "bar bar";gap:5px 7px;width:100%;
+  padding:8px 10px;text-align:left;align-content:start}
+.seg.cur .segbtn{border:2px solid var(--accent);background:var(--accent-soft)}
+.seg.later .segbtn{color:var(--sub)}
+.segbtn .pknum{grid-area:num;width:22px;height:22px}
+.segflag{grid-area:num}
+.segn{grid-area:n;font-size:var(--t-cap);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.seg.done .segn{color:var(--accent)}
+.segt{grid-area:t;font-size:var(--t-cap);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden}
+.segbar{grid-area:bar;display:block;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.segbar>i{display:block;height:100%;background:var(--st-done);border-radius:3px}
+.seg.goal .segbtn{border-style:dashed}
+.seg.goal.done .segbtn{border:2px solid var(--accent);border-style:solid}
+/* できた／急ぎ・早めに／これから の数。押すとその一覧が開く */
+.tally{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+button.tbtn{border-radius:999px;padding:0 14px;gap:7px}
+.tbtn b{font-size:var(--t-md);font-variant-numeric:tabular-nums}
+.tbtn[aria-expanded="true"]{background:var(--paper);box-shadow:inset 0 0 0 1.5px var(--focus)}
+/* 期日ぎれ。件数が0のときはボタンごと出さないので、赤が出ていれば手当てが要るという意味になる */
+button.tbtn.over{background:var(--st-urgent);border-color:var(--st-urgent);color:var(--on-urgent);
+  font-weight:700}
+.tbtn.over[aria-expanded="true"]{box-shadow:inset 0 0 0 1.5px var(--focus)}
+.overmark{font-size:var(--t-sm);line-height:1}
+.pnum{font-size:var(--t-sm);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;
+  color:var(--sub);margin-left:auto}
+.tlhd{margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line);
+  font-size:var(--t-cap);font-weight:700;color:var(--sub);letter-spacing:.05em}
+.tlist{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+button.trow{width:100%;border-color:transparent;background:transparent;text-align:left;
+  padding:4px 8px;gap:10px}
+button.trow:hover{background:var(--paper);border-color:transparent}
+.tempty{font-size:var(--t-sm);color:var(--sub);padding:6px 8px}
+.recent{margin:10px 0 0;font-size:var(--t-sm);color:var(--sub)}
+.recent b{color:var(--ink);font-variant-numeric:tabular-nums}
+/* この指定は基本の指定より後ろに置くこと（前に置くと上書きされて効かない。実際に効かなかった） */
+@media(max-width:560px){
+  /* スマホでは4列に並べると名前が細切れになる。1山を1行にして縦に積む */
+  .rail{grid-template-columns:1fr;gap:5px}
+  button.segbtn{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"num t n" "num bar n";
+    padding:6px 12px;gap:3px 10px;align-items:center}
+  .segt{-webkit-line-clamp:1;font-size:var(--t-sm)}
+}
+.legend{display:flex;gap:10px 16px;flex-wrap:wrap;color:var(--sub);font-size:var(--t-cap);
+  align-items:center;margin-top:14px}
+.legend b{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.banner{display:none;margin-top:10px;padding:9px 13px;border-radius:var(--r-ctrl);
+  background:var(--accent-soft);color:var(--ink);font-size:var(--t-sm)}
+.banner.show{display:block}
+/* つぎにやること */
+/* 印が付いていなくても空にしない。急ぎ→早めにやる→いまの山の残り、の順で最大3件。
+   右の「できた」を押せば、開かずに1回で記録できる */
+.nextbar{margin-top:14px}
+.nexthd{font-size:var(--t-cap);font-weight:700;color:var(--sub);letter-spacing:.05em}
+.nextnone{font-size:var(--t-sm);color:var(--sub);margin:4px 0 0}
+.nextlist{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.nextrow{display:flex;gap:8px;align-items:stretch}
+button.nextpill{flex:1 1 auto;min-width:0;text-align:left;padding:5px 14px;gap:10px;background:var(--card)}
+.npbody{display:flex;flex-direction:column;min-width:0}
+.npdot{flex:none;width:10px;height:10px;border-radius:50%}
+.npdot.urgent{background:var(--st-urgent)}
+.npdot.soon{background:var(--st-soon)}
+.npdot.done{background:var(--st-done)}
+.npdot.todo{border:2px solid var(--st-todo)}
+.nextpill.urgent{border-color:var(--st-urgent)}
+.nextpill.soon{border-color:var(--st-soon)}
+/* 期日をすぎた行。状態の色（丸）はそのままに、行の縁だけ赤くする */
+.nextpill.overdue{border-color:var(--st-urgent);box-shadow:inset 0 0 0 1px var(--st-urgent)}
+/* 押せる文字は折り返さない。狭い画面では末尾を「…」で切る（全文はカードで読める） */
+.npt{font-size:var(--t-sm);font-weight:700;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* 期日の札は切らない。長いのは名前のほうを「…」で切る */
+.npm{font-size:var(--t-cap);color:var(--sub);white-space:nowrap;font-weight:400;
+  overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px;min-width:0}
+.npmt{overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* 期日（日付で入れたものだけ）。過ぎたもの・今日までのものは赤で出す。
+   図の丸や行の色（状態の4色）は変えない＝「赤い札＝期日、丸の色＝状態」と役割を分ける */
+.duepill{flex:none;font-size:var(--t-cap);border-radius:999px;padding:1px 9px;white-space:nowrap;
+  font-variant-numeric:tabular-nums;color:var(--sub);background:var(--paper);
+  box-shadow:inset 0 0 0 1px var(--line)}
+.duepill.over,.duepill.today{background:var(--st-urgent);color:var(--on-urgent);
+  box-shadow:none;font-weight:700}
+.duepill.near{color:var(--st-urgent);background:var(--card);box-shadow:inset 0 0 0 1.5px var(--st-urgent);
+  font-weight:700}
+.duepill.kept{opacity:.75}
+.nextmore{font-size:var(--t-cap);color:var(--sub);margin:4px 0 0}
+/* 「できた」ボタン。状態の青で縁取り、押すと青に塗る */
+button.donebtn{flex:none;border:1.5px solid var(--st-done);color:var(--st-done);
+  font-weight:700;padding:0 13px;gap:5px;background:var(--card)}
+button.donebtn:hover{background:var(--st-done);color:var(--on-done);border-color:var(--st-done)}
+button.donebtn.sm{font-size:var(--t-cap);padding:0 10px}
+/* 担当でしぼる */
+.ownerbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.ownlbl{font-size:var(--t-cap);color:var(--sub);white-space:nowrap}
+.ofbtn{border-radius:999px;padding:0 15px}
+.ofbtn.on{background:var(--btn-face);border-color:var(--btn-face);color:var(--btn-ink);font-weight:700}
+.ofnum{font-size:var(--t-cap);font-variant-numeric:tabular-nums;opacity:.8}
+.faded{opacity:.26}
+.edittools{display:none;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.edittools.show{display:flex}
+.edittools .note{color:var(--sub);font-size:var(--t-cap)}
+/* hidden 属性は button の display:inline-flex に負けて効かない（説明書で実際に起きた）。必ず隠す */
+[hidden]{display:none!important}
+/* 公開版だけの一言。どこに保存されるかは、使う人が知っておくべきことなので出す */
+.localnote{flex:1 1 100%;margin:0;color:var(--sub);font-size:var(--t-cap);line-height:1.7;max-width:52em}
+.localnote a{color:var(--accent);font-weight:700;margin-left:6px}
+/* 図は「カード」に入れず紙面に直接置く。全部を同じ角丸の箱にすると階層が平らに見え、
+   量産テンプレートの見た目に寄る。上下の細い罫だけで領域を示す */
+.chartbox{margin-top:0;overflow-x:auto;overflow-y:hidden;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 0 4px}
+.chartbox svg{display:block;width:100%;height:auto;touch-action:manipulation}
+/* 861px以上：横長の図。入れ物は828px以上あるので横スクロールにならない */
+@media(min-width:861px){ .chartbox svg{min-width:820px} }
+/* 860px以下：縦長の図に切り替える。引き伸ばしすぎないよう幅を止めて中央に置く */
+@media(max-width:860px){ .chartbox svg{max-width:420px;margin:0 auto} }
+/* 背景は「山の断面図」の作法。飾りの稜線は道と紛らわしいので置かない。
+   地面の線と、各山の高さを示す水平線だけを引く（山どうしの高さの差が読める） */
+.ground{stroke:var(--line);stroke-width:2}
+.level{stroke:var(--line);stroke-width:1;stroke-dasharray:1 5;stroke-linecap:round}
+.route{fill:none;stroke:var(--ridge);stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round}
+/* これから登る分。破線にして「まだ通っていない道」に見せる。
+   薄くしすぎると図そのものが頼りなく見えるので、細さと濃さは控えめに落とす */
+.route-next{stroke-width:3;stroke-dasharray:9 8;opacity:.55}
+.route-fill{fill:var(--ridge-soft);stroke:none}
+/* 数値の目標の達成率を、山の胴体を下から塗って示す（2026-09-21）。
+   「山にどこまで登ったか」を面積で読ませる。小目標の道（実線／破線）とは別の情報なので、
+   道の色（--ridge）ではなく差し色の緑にする。飾りではなく、読み取れる情報を持つ塗り */
+/* 濃さは紙で読めるかで決めた。--accent-soft のままだと山の地の色との差が小さく、
+   刷り上がりで水位が判別しづらかった（PDF実物で確認 2026-09-21） */
+.kpifill{fill:var(--accent);fill-opacity:.17;stroke:none;pointer-events:none}
+.kpiline{stroke:var(--accent);stroke-width:2.2;stroke-dasharray:6 4;pointer-events:none;opacity:.9}
+.arrow{stroke:var(--accent);stroke-width:4;stroke-linecap:round;fill:none}
+.arrow-head{fill:var(--accent)}
+svg text{font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",sans-serif;fill:var(--ink);pointer-events:none}
+.halo{paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round}
+.stepc{stroke-width:2.5}
+.stepc.todo{fill:var(--paper);stroke:var(--st-todo)}
+.stepc.soon{fill:var(--st-soon);stroke:var(--st-soon)}
+.stepc.urgent{fill:var(--st-urgent);stroke:var(--st-urgent)}
+.stepc.done{fill:var(--st-done);stroke:var(--st-done)}
+/* 数字の色は地の色ごとに変える。黄色の上に白は読めない（実測2.23:1だった） */
+.stepnum{font-size:13px;font-weight:700}
+.stepnum.done{fill:var(--on-done)}
+.stepnum.soon{fill:var(--on-soon)}
+.stepnum.urgent{fill:var(--on-urgent)}
+.stepnum.todo{fill:var(--sub)}
+/* 選んだ印は、状態の色（青＝できた）と見分けがつくよう、濃い色の点線にする。
+   以前は青い輪で、「できた」や「達成」と取り違えた（本人指摘 2026-09-19） */
+.selring{fill:none;stroke:var(--ink);stroke-width:2;stroke-dasharray:5 3}
+/* 縦長の図では山の名前が入らないので番号で示す。カードの見出しと同じ番号 */
+.pkbadge{fill:var(--ridge)}
+.pkbadge.done{fill:var(--accent)}
+.pkbadgetx{font-size:13px;font-weight:700;fill:var(--card)}
+/* 達成した山の番号は「1 達成」の緑の札にする */
+.pkpill{fill:var(--accent)}
+.pkpilltx{font-size:13px;font-weight:700;fill:var(--on-accent)}
+g[data-open]{cursor:pointer}
+/* 指やマウスで押しやすいように、見えない当たり判定を重ねる */
+.hit{fill:transparent;pointer-events:all}
+.peak-title{pointer-events:auto}
+/* 山ごとのカード。図の上に文字を重ねず、どの丸がどの目標かをここで示す */
+/* 3枚を等幅で真横に並べると量産テンプレートの形になる。
+   山の高さの順に段差を付けて、図の並びと同じ「右へ登る」形にする（狭い画面では段差なし） */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));
+  gap:14px;margin-top:16px;--step:16px;align-items:start}
+@media(max-width:860px){ .cards{--step:0px} }
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);
+  padding:12px 14px 14px;margin-top:calc(var(--lift,0) * var(--step))}
+.card>header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px;min-height:44px;
+  cursor:pointer;border-radius:var(--r-ctrl);padding:4px 6px;margin:-4px -6px}
+.card>header:hover{background:var(--paper)}
+.card>header.on{background:var(--paper);box-shadow:inset 0 0 0 1.5px var(--focus)}
+.card h3{font-family:"Zen Old Mincho","Hiragino Mincho ProN",serif;font-weight:600;
+  font-size:var(--t-md);margin:0;line-height:1.4;flex:1 1 auto;letter-spacing:.02em}
+.pknum{flex:none;display:inline-grid;place-items:center;width:26px;height:26px;
+  border-radius:50%;background:var(--ridge);color:var(--card);
+  font-size:var(--t-cap);font-weight:700;font-family:"Zen Kaku Gothic New",sans-serif}
+.pknum.done{background:var(--accent);color:var(--on-accent)}
+.donechip{font-size:var(--t-cap);font-weight:700;color:var(--on-accent);background:var(--accent);
+  border-radius:999px;padding:2px 9px;white-space:nowrap}
+.card .amt{font-size:var(--t-cap);font-weight:700;color:var(--ridge);background:var(--ridge-soft);
+  border-radius:999px;padding:2px 10px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.card .cdue{font-size:var(--t-cap);color:var(--sub);white-space:nowrap}
+.cprog{display:flex;align-items:center;gap:9px;margin-top:10px}
+.cprogbar{flex:1 1 auto;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.cprogbar>i{display:block;height:100%;background:var(--st-done);border-radius:3px}
+.cprognum{font-size:var(--t-cap);color:var(--sub);white-space:nowrap;font-variant-numeric:tabular-nums}
+/* 数値の目標（KPI）。「いくつまで来たか」を数で出す（2026-09-21 本人指示「③KPIの数値化」）。
+   小目標の進み（できた◯／◯・青）とは別の情報なので、色は差し色の緑にして役割を分ける。
+   状態の4色（最初に決めた取り決め）はここでは使わない */
+.kprog{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.kplbl{font-size:var(--t-cap);color:var(--sub);white-space:nowrap}
+.kpbar{flex:1 1 80px;min-width:64px;height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.kpbar>i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.kpnum{font-size:var(--t-cap);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.kppct{font-size:var(--t-cap);font-weight:700;color:var(--accent);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+/* まとめの中に出すときは、カードより少し目立たせる（いま登っている山の数字なので） */
+.now .kprog{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.card ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.card li{display:flex;gap:6px;align-items:center;border-radius:var(--r-ctrl);min-height:44px}
+/* 行は「開く部分」と「できたボタン」に分ける。ボタンの中にボタンを入れない */
+.rowmain{flex:1 1 auto;min-width:0;display:flex;gap:10px;align-items:center;padding:7px 6px;
+  border-radius:var(--r-ctrl);min-height:44px;cursor:pointer}
+.rowmain:hover{background:var(--paper)}
+.card li.row.on{background:var(--paper);box-shadow:inset 0 0 0 1.5px var(--focus)}
+/* 期日をすぎた行は左端に赤い帯。状態の色（番号の丸）はそのまま */
+.card li.row.overdue .rowmain{box-shadow:inset 3px 0 0 var(--st-urgent)}
+.donedate{flex:none;font-size:var(--t-cap);color:var(--sub);padding-right:8px;
+  font-variant-numeric:tabular-nums}
+/* 達成した山（小目標もぜんぶできた山）は畳む。画面の主役を、これからやることに譲る */
+button.foldbtn{margin-top:8px;width:100%;justify-content:center;color:var(--sub)}
+.cardsug{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  font-size:var(--t-sm);color:var(--sub)}
+/* その場で追加。名前だけで足せる（担当・期日はあとから） */
+button.qabtn{margin-top:10px;width:100%;justify-content:center;border-style:dashed;color:var(--sub)}
+.qa{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px}
+.qa input{flex:1 1 100%;min-width:0;font-family:inherit;font-size:var(--t-md);padding:10px 12px;
+  min-height:44px;border:1px solid var(--line);border-radius:var(--r-ctrl);
+  background:var(--paper);color:var(--ink)}
+button.qamore{color:var(--sub)}
+.card li.empty{color:var(--sub);font-size:var(--t-sm)}
+/* バッジの文字色も地の色ごとに変える。黄色に白文字は読めない */
+.badge{flex:none;width:24px;height:24px;border-radius:50%;font-size:var(--t-cap);font-weight:700;
+  display:grid;place-items:center;border:2px solid;box-sizing:border-box}
+.badge.todo{border-color:var(--st-todo);color:var(--sub);background:var(--card)}
+.badge.soon{border-color:var(--st-soon);background:var(--st-soon);color:var(--on-soon)}
+.badge.urgent{border-color:var(--st-urgent);background:var(--st-urgent);color:var(--on-urgent)}
+.badge.done{border-color:var(--st-done);background:var(--st-done);color:var(--on-done)}
+.rbody{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rt{font-size:var(--t-md);line-height:1.5}
+.row.done .rt{text-decoration:line-through;color:var(--sub)}
+.rm{font-size:var(--t-cap);color:var(--sub);line-height:1.5}
+.addstep{margin-top:10px;width:100%;justify-content:center;border-style:dashed}
+.peak-title{font-family:"Zen Old Mincho","Hiragino Mincho ProN",serif;font-size:16px;font-weight:600}
+.peak-amt{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;fill:var(--ridge)}
+.peak-amt-bg{fill:var(--ridge-soft)}
+.peak-due{font-size:12px;fill:var(--sub)}
+.flagpole{stroke:var(--ridge);stroke-width:2.5}
+.flag{fill:var(--ridge)}
+/* 達成した山：旗の後ろで緑の円がはっきり明滅し、旗は白抜きにして緑の上で浮かせる
+   （以前は旗が緑になって少し光るだけで、達成したのか分かりにくかった。本人指摘 2026-09-19） */
+.peak-done .flag{fill:var(--card);stroke:var(--accent);stroke-width:2;stroke-linejoin:round}
+.peak-done .flagpole{stroke:var(--accent);stroke-width:3}
+.peakhalo{fill:var(--accent);opacity:.5;pointer-events:none;
+  animation:peakPulse 1.6s ease-in-out infinite}
+@keyframes peakPulse{0%,100%{opacity:.2}50%{opacity:.85}}
+.peak-amt-bg.done{fill:var(--accent)}
+.peak-amt.done{fill:var(--on-accent)}
+.glow{filter:drop-shadow(0 0 7px var(--accent))}
+/* できた小目標・達成した山とゴールは、周りの光をゆっくり明滅させて目に留める（本人指示 2026-09-19）。
+   丸や札そのものの色は消さない。消すと、その間は状態の色が読めなくなる。
+   1周1.6秒。1秒に3回を超える点滅は光過敏の人に危ないので速くしない。
+   動かないときの見た目（下の各行の値）は、動きを減らす設定・印刷・撮影でも使われる */
+.donehalo{fill:var(--st-done);opacity:.3;pointer-events:none;
+  animation:donePulse 1.6s ease-in-out infinite}
+@keyframes donePulse{0%,100%{opacity:.08}50%{opacity:.5}}
+.glow{animation:glowPulse 1.6s ease-in-out infinite}
+@keyframes glowPulse{0%,100%{filter:drop-shadow(0 0 2px var(--accent))}
+  50%{filter:drop-shadow(0 0 11px var(--accent))}}
+.badge.done{animation:badgePulse 1.6s ease-in-out infinite}
+@keyframes badgePulse{0%,100%{box-shadow:0 0 0 0 var(--done-glow)}
+  50%{box-shadow:0 0 0 6px var(--done-glow)}}
+.donechip,.pknum.done{animation:chipPulse 1.6s ease-in-out infinite}
+@keyframes chipPulse{0%,100%{box-shadow:0 0 0 0 var(--accent-glow)}
+  50%{box-shadow:0 0 0 5px var(--accent-glow)}}
+.goal-ring{fill:var(--accent-soft);stroke:var(--accent);stroke-width:3}
+.goal-ring2{fill:none;stroke:var(--accent);stroke-width:1.5}
+.goal-title{font-family:"Zen Old Mincho","Hiragino Mincho ProN",serif;font-size:18px;font-weight:600}
+.goal-sub{font-size:12px;fill:var(--sub)}
+/* ゴール（KGI）の数値。そえがきと見分けるため差し色の緑で太く */
+.goal-kpi{font-size:12px;font-weight:700;fill:var(--accent)}
+/* 「いまここ」は飾りなので、下にある丸のクリックを奪わないようにする */
+.here{pointer-events:none}
+.here-bg{fill:var(--accent)}
+.here-tx{font-size:12px;font-weight:700;fill:var(--on-accent)}
+.here-lead{stroke:var(--accent);stroke-width:2}
+.panel{margin-top:16px;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r-card);padding:16px 18px}
+.panel .hint{color:var(--sub);font-size:var(--t-sm);margin:2px 0;max-width:42em}
+/* 何も選んでいないときは説明欄ごと出さない。使い方の案内文は置かない（本人指示 2026-09-19） */
+.panel.idle{display:none}
+.panel h2{font-family:"Zen Old Mincho","Hiragino Mincho ProN",serif;font-weight:600;
+  font-size:var(--t-lg);margin:0 0 5px;letter-spacing:.02em}
+.panel .meta{color:var(--sub);font-size:var(--t-cap);margin-bottom:9px}
+.panel .detail{white-space:pre-wrap;max-width:40em}
+/* 期日をその場で入れ替える欄（編集モードに入らなくても使える） */
+.duerow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.duerow label{font-size:var(--t-cap);color:var(--sub)}
+.duerow input{font-family:inherit;font-size:var(--t-md);min-height:44px;padding:0 12px;
+  border:1px solid var(--line);border-radius:var(--r-ctrl);background:var(--paper);color:var(--ink)}
+.duerow button{font-size:var(--t-cap);color:var(--sub)}
+/* 数値の目標をその場で入れる欄。編集モードに入らなくても使える
+   （いまの値は毎週変わるので、ここを開くだけで更新できるようにする。期日と同じ考え方）。
+   2026-09-21に作り直した。以前は入れ物が4つ横に並ぶだけで、中の案内（placeholder）は
+   打ち始めると消えるため、どの箱に何を入れるのか分からなくなっていた。
+   本人が「いま」の箱に年（2026）を入れて203%になった（「いま」が「いまは何年」と読めた）。
+   いまは箱の上に消えない見出しを付け、打つそばから結果の1行を出す */
+.kpiset{margin-top:14px;padding:12px 14px 13px;border:1px solid var(--line);
+  border-radius:var(--r-card);background:var(--paper)}
+.kpihd{font-size:var(--t-cap);font-weight:700;color:var(--sub);letter-spacing:.05em;margin-bottom:9px}
+.kpigrid{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.kpif{display:flex;flex-direction:column;gap:3px;min-width:0}
+.kpif > span{font-size:var(--t-cap);color:var(--sub)}
+.kpif input{width:100%;font-family:inherit;font-size:var(--t-md);min-height:44px;padding:0 11px;
+  border:1px solid var(--line);border-radius:var(--r-ctrl);background:var(--card);color:var(--ink)}
+.kpif-l{flex:1 1 168px;max-width:340px}
+.kpif-n{width:108px}
+.kpif-n input{text-align:right;font-variant-numeric:tabular-nums}
+.kpif-u{width:88px}
+/* 打っているそばから「こうなります」を出す。押す前に間違いに気づけるようにするため */
+.kpiprev{margin:11px 0 0;font-size:var(--t-sm);line-height:1.7}
+.kpiprev b{font-variant-numeric:tabular-nums}
+.kpiprev .pc{color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+.kpiprev.none{color:var(--sub)}
+.kpibtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+/* 小目標の中のタスク（2026-09-21 本人指示「押したらさらに詳細なタスクが表示されるように」）。
+   小目標を開くと、ここに細かい手順がチェックリストで出る。押すだけで済・未済が切り替わる。
+   済みの印は「できた」と同じ青。全部済んでも小目標を自動で「できた」にはしない（決めるのは人） */
+.tasks{margin-top:14px;padding:12px 14px 13px;border:1px solid var(--line);
+  border-radius:var(--r-card);background:var(--paper)}
+.taskhd{display:flex;align-items:center;gap:10px;font-size:var(--t-cap);font-weight:700;
+  color:var(--sub);letter-spacing:.05em;margin-bottom:6px}
+.taskn{font-variant-numeric:tabular-nums;color:var(--ink)}
+.taskbar{flex:1 1 60px;max-width:160px;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.taskbar>i{display:block;height:100%;background:var(--st-done);border-radius:3px}
+.tasklist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.tasklist li{display:flex;align-items:center;gap:6px}
+button.tchk{flex:1 1 auto;min-width:0;justify-content:flex-start;text-align:left;
+  border-color:transparent;background:transparent;padding:6px 8px;gap:10px;
+  font-size:var(--t-md);line-height:1.5}
+button.tchk:hover{background:var(--card);border-color:transparent}
+.tbox{flex:none;width:22px;height:22px;border-radius:6px;border:2px solid var(--st-todo);
+  background:var(--card);display:grid;place-items:center;font-size:var(--t-sm);font-weight:700;
+  color:var(--on-done);line-height:1}
+.tdone .tbox{background:var(--st-done);border-color:var(--st-done)}
+.tdone .ttl{text-decoration:line-through;color:var(--sub)}
+button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color:var(--st-urgent);padding:0 12px}
+.tempty2{font-size:var(--t-sm);color:var(--sub);margin:2px 0 0}
+.taskadd{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.taskadd input{flex:1 1 200px;min-width:0;font-family:inherit;font-size:var(--t-md);min-height:44px;
+  padding:0 12px;border:1px solid var(--line);border-radius:var(--r-ctrl);background:var(--card);color:var(--ink)}
+.tasksug{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  font-size:var(--t-sm);color:var(--sub)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
+.chip{border-radius:999px;padding:0 16px}
+.chip b{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.chip.active{border-width:2px;font-weight:700}
+.chip.c-todo.active{border-color:var(--st-todo)}
+.chip.c-soon.active{border-color:var(--st-soon)}
+.chip.c-urgent.active{border-color:var(--st-urgent)}
+.chip.c-done.active{border-color:var(--st-done)}
+.panelbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.form{display:grid;gap:10px;max-width:560px}
+.form label{font-size:var(--t-cap);color:var(--sub);display:block;margin-bottom:4px}
+.form input,.form textarea,.form select{width:100%;font-family:inherit;font-size:var(--t-md);
+  padding:10px 12px;min-height:44px;border:1px solid var(--line);border-radius:var(--r-ctrl);
+  background:var(--paper);color:var(--ink)}
+.form textarea{min-height:80px;resize:vertical}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:560px){.frow{grid-template-columns:1fr}}
+.srcnote{color:var(--sub);font-size:var(--t-cap);margin-top:18px;max-width:44em;line-height:1.7}
+/* 書き込み欄と紙用の図は紙だけのもの。画面には出さない */
+.writein{display:none}
+.printchart{display:none}
+.printlist{display:none}
+.saving{position:fixed;left:50%;bottom:22px;transform:translate(-50%,80px);
+  background:var(--ink);color:var(--paper);padding:10px 20px;border-radius:999px;
+  font-size:var(--t-sm);transition:transform .25s;z-index:50}
+.saving.show{transform:translate(-50%,0)}
+.saving.err{background:var(--st-urgent);color:var(--on-urgent)}
+/* 押したあとに数秒だけ出る「取り消す」。保存の知らせ（.saving）とは別の場所に出す。
+   同じ場所だと、600ms後の「保存しています…」に上書きされて押せなくなる */
+.undobar{position:fixed;left:50%;bottom:74px;transform:translate(-50%,200px);z-index:51;
+  display:flex;align-items:center;gap:12px;max-width:calc(100vw - 24px);
+  background:var(--ink);color:var(--paper);padding:6px 6px 6px 18px;border-radius:999px;
+  font-size:var(--t-sm);transition:transform .25s;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.undobar.show{transform:translate(-50%,0)}
+.undobar:not(.show){visibility:hidden}
+.undobar .umsg{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.undobar button{flex:none;border-radius:999px;background:transparent;color:var(--paper);
+  border-color:var(--paper);font-weight:700}
+@media (prefers-reduced-motion: reduce){
+  .saving,.undobar{transition:none}
+  .donehalo,.glow,.badge.done,.donechip,.pknum.done,.peakhalo{animation:none}
+}
+@media print{
+  @page{size:A4 landscape;margin:9mm}
+  body{background:#fff;color:#22303A}
+  .noprint{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .printchart .halo{stroke:#fff}
+  .printhead{display:block;margin:0 0 4px}
+  .printhead .ph1{font-family:"Zen Old Mincho","Hiragino Mincho ProN",serif;font-weight:900;
+    font-size:20px;letter-spacing:.03em}
+  .printhead .ph2{font-size:11px;color:#5D6F77}
+  /* 紙は動かないので明滅を止める。途中の半端な光が刷られないようにする */
+  .glow,.badge.done,.donechip,.pknum.done{animation:none}
+  .donehalo,.peakhalo{display:none}
+  .panel{display:none}
+  /* 壁に貼る前提なので、図とチェックリストは「A4横1枚」に収める（本人指示 2026-09-21）。
+     並びは 図 → 色の意味 → チェックリスト（本人指示 2026-09-21「チェックリストは山図の下に」）。
+     並べ替えは flex の order で行う（DOMの並びは画面用のままにする） */
+  .wrap{display:flex;flex-wrap:wrap;align-items:flex-start;gap:0}
+  .printhead{flex:1 1 100%;order:0}
+  /* 紙では横に広い図（#printchart）に差し替える */
+  #chart{display:none}
+  .printchart{order:1;flex:1 1 100%;display:block}
+  /* 図の高さは「1枚に収まるか」の実測で決めた値。数値の目標の行が増えたぶん 92mm→88mm に詰めた
+     （2026-09-21。変えたら必ず verify_paper.py を通す） */
+  .printchart svg{display:block;width:100%;height:auto;max-height:88mm}
+  /* 画面の下に浮かぶ知らせ（保存・取り消す）は紙に出さない */
+  .saving,.undobar{display:none!important}
+  /* 図は全員ぶんのまま刷る。薄い丸は紙だと読めないので、しぼっていても薄くしない
+     （その人の分だけになるのはチェックリスト側） */
+  #chart .faded{opacity:1}
+  .legend{order:2;flex:1 1 100%;margin-top:4px}
+  /* チェックリストは図の下いっぱいに広げる。1列だと行が長くなりすぎるので3段に割る */
+  /* 画面の行間（1.75）のままだと紙で縦に伸びて1枚に収まらない */
+  .printlist{order:3;flex:1 1 100%;display:block;font-size:11.5px;margin-top:6px;
+    columns:3;column-gap:9mm;line-height:1.5}
+  /* 余った下の帯は、書き込み欄にする（意味のない余白にしない） */
+  .writein{order:4;flex:1 1 100%;display:block;margin-top:8px;
+    break-inside:avoid;page-break-inside:avoid}
+  .wihd{font-size:12px;font-weight:700;color:#26333B;display:flex;gap:14px;align-items:baseline}
+  .wiweek{font-weight:400;color:#5D6F77;font-size:11px}
+  .wiline{border-bottom:1px solid #C7D2CB;height:8.5mm}
+  /* 注意書きは1枚目の下に小さく収める（2枚目にこぼすと、紙が2枚になってしまう） */
+  .srcnote{order:5;flex:1 1 100%;font-size:9.5px;line-height:1.5;margin-top:7px;max-width:none}
+  /* 山ひとつぶん（見出し＋小目標）はページの途中で切らない */
+  .printlist .psec{break-inside:avoid;page-break-inside:avoid}
+  /* 「つぎにやること」は押すためのボタン帯なので紙には出さない（一覧に同じ情報がある） */
+  #nextbar{display:none}
+  /* カードは印刷しない。カードを含めるとChromiumが分割禁止で押し出された
+     ぶんのページを最後で切り捨て、チェックリストが丸ごと消える（PDF実物で確認）。
+     紙に要る情報（山・小目標・担当・期日）はチェックリスト側に全部ある。
+     カード込みの紙が要るときは「印刷・PDFにする」ボタンの印刷用ファイルを使う */
+  #cards{display:none}
+  /* 見出しは3段の上をまたいで1本に。段の中に入ると「何の一覧か」が読み取りにくい */
+  .printlist h2{font-size:13px;margin:0 0 6px;column-span:all}
+  .pwho{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;
+    border:1.5px solid #26333B;border-radius:999px;padding:0 8px}
+  .printlist h3{font-size:12.5px;margin:0 0 3px}
+  .printlist .psec{margin-bottom:8px}
+  .printlist ul{margin:0;padding-left:0;list-style:none}
+  .printlist li{margin:2px 0}
+  .printlist .mark{display:inline-block;width:13px;height:13px;border:1.5px solid #26333B;
+    border-radius:50%;margin-right:7px;vertical-align:-2px}
+  .printlist .pmeta{color:#5D6F77}
+  /* 数値の目標。紙では地の色が刷られないことがあるので、枠と文字でも読めるようにする */
+  .pkpi{display:inline-block;font-size:11px;font-weight:700;color:#276B4E;
+    border:1.5px solid #276B4E;border-radius:999px;padding:0 7px;white-space:nowrap}
+}
+</style>
+
+</head><body>
+<script data-app id="rm-data" type="application/json">
+{
+ "v": 1,
+ "seq": 45,
+ "title": "カフェ開業ロードマップ",
+ "subtitle": "見本です（架空のカフェ開業）。「編集モード」で書き換えるか、白紙から始めてください",
+ "updated": "2027-02-01",
+ "start": {
+  "label": "いま",
+  "sub": "2027年2月"
+ },
+ "note": "金額・時期は開業前の見込みです。実際の見積もりや売上が出たら、その数字に置きかえてください。",
+ "goal": {
+  "title": "毎月 50万円",
+  "sub": "お店からもらう自分の給料（開業3年目）",
+  "detail": "お店の利益から、自分の給料を毎月50万円とれる状態にする。月の売上180万円・原価と経費130万円が目安。数字は開業前の見込みなので、実際の売上が見えてきたら見直す。",
+  "done": false,
+  "kpi": {
+   "label": "自分の給料",
+   "target": 50,
+   "current": 0,
+   "unit": "万円"
+  }
+ },
+ "peaks": [
+  {
+   "id": "p1",
+   "title": "物件を決めて契約する",
+   "amount": "保証金 200万円",
+   "due": "2027年3月まで",
+   "detail": "駅から徒歩7分以内・20席・家賃30万円以下、の3つを満たす物件を1件に決めて、契約書を交わすところまで。ここが決まらないと工事の見積もりも取れない。",
+   "done": false,
+   "kpi": {
+    "label": "見た物件",
+    "target": 3,
+    "current": 2,
+    "unit": "件"
+   }
+  },
+  {
+   "id": "p2",
+   "title": "内装と仕入れをそろえる",
+   "amount": "工事・備品 500万円",
+   "due": "2027年8月まで",
+   "detail": "内装工事・厨房機器・食器をそろえ、保健所の営業許可をとって、開店日にお客さんを入れられる状態にする。",
+   "done": false,
+   "kpi": {
+    "label": "そろえた費用",
+    "target": 500,
+    "current": 120,
+    "unit": "万円"
+   }
+  },
+  {
+   "id": "p3",
+   "title": "月の売上180万円にする",
+   "amount": "1日60人・客単価1,000円",
+   "due": "2028年8月まで",
+   "detail": "開店から1年で、月の売上を180万円まで持っていく。1日あたり60人・客単価1,000円が目安。まず近所の常連さんをつくる。",
+   "done": false,
+   "kpi": {
+    "label": "月の売上",
+    "target": 180,
+    "current": 0,
+    "unit": "万円"
+   }
+  }
+ ],
+ "steps": [
+  {
+   "id": "s1",
+   "peak": "p1",
+   "title": "不動産屋3社に条件を伝える",
+   "owner": "たろう",
+   "due": "",
+   "dueOn": "2027-01-20",
+   "status": "done",
+   "doneAt": "2027-01-18",
+   "detail": "「駅から徒歩7分以内・20坪前後・家賃30万円以下」を紙1枚にまとめて、3社に渡す。3社に渡し終わったら、この小目標は終わり。"
+  },
+  {
+   "id": "s2",
+   "peak": "p1",
+   "title": "候補3件を見て比較表を作る",
+   "owner": "たろう・はなこ",
+   "due": "",
+   "dueOn": "2027-01-31",
+   "status": "urgent",
+   "detail": "家賃・保証金・更新料・広さ・前の道の人通りを、1枚の表にする。10年借りたときの総額まで出して、2人で見て1件に絞る。",
+   "tasks": [
+    {
+     "id": "t41",
+     "title": "候補を3件にしぼる",
+     "done": true
+    },
+    {
+     "id": "t42",
+     "title": "3件とも見に行き、写真を撮る",
+     "done": true
+    },
+    {
+     "id": "t43",
+     "title": "家賃・保証金・広さ・人通りを表にする",
+     "done": false
+    },
+    {
+     "id": "t44",
+     "title": "10年借りたときの総額を出す",
+     "done": false
+    },
+    {
+     "id": "t45",
+     "title": "2人で表を見て1件に決める",
+     "done": false
+    }
+   ]
+  },
+  {
+   "id": "s3",
+   "peak": "p1",
+   "title": "契約書を専門家に見てもらう",
+   "owner": "はなこ",
+   "due": "",
+   "dueOn": "2027-02-03",
+   "status": "soon",
+   "detail": "判子を押す前に必ず1回見てもらう。とくに、途中で解約するときの条件と、出るときにどこまで元に戻すか（原状回復）の範囲を確認する。"
+  },
+  {
+   "id": "s4",
+   "peak": "p2",
+   "title": "工務店3社から見積もりをとる",
+   "owner": "たろう",
+   "due": "",
+   "dueOn": "2027-04-10",
+   "status": "todo",
+   "detail": "同じ図面を渡して3社に頼む。金額だけで選ばず、工期と、カフェを何軒やったことがあるかも聞いて決める。"
+  },
+  {
+   "id": "s5",
+   "peak": "p2",
+   "title": "焙煎所3か所で豆を試飲する",
+   "owner": "はなこ",
+   "due": "",
+   "dueOn": "2027-04-30",
+   "status": "soon",
+   "detail": "1kgあたりの値段と、5kgの少量から頼めるかを確認する。3か所まわったうえで、仕入れ先を1社に決める。"
+  },
+  {
+   "id": "s6",
+   "peak": "p2",
+   "title": "保健所に営業許可を申請する",
+   "owner": "たろう",
+   "due": "開店の1か月前まで",
+   "status": "todo",
+   "detail": "図面ができた時点で一度相談に行く。手洗い場とシンクの数が足りず、工事のやり直しになることが多いので、着工前に確認する。"
+  },
+  {
+   "id": "s7",
+   "peak": "p3",
+   "title": "近所1,000世帯にちらしを配る",
+   "owner": "たろう",
+   "due": "開店の1週間前まで",
+   "status": "todo",
+   "detail": "開店1週間前から3日かけて配る。割引券をつけておいて、あとから何枚戻ってきたかを数える。"
+  },
+  {
+   "id": "s8",
+   "peak": "p3",
+   "title": "常連カードを100枚配る",
+   "owner": "はなこ",
+   "due": "開店から1か月後まで",
+   "status": "todo",
+   "detail": "10杯で1杯無料のカード。開店直後は手が回らないので、落ち着く1か月後から配りはじめて、100枚配り切る。"
+  }
+ ]
+}
+</script>
+
+<div data-app class="wrap">
+  <!-- 画面は山の図から始める。題名と「編集モード」「印刷」はページのいちばん下にまとめる（本人指示 2026-09-19）。
+       紙では図の上に題名が要るので、印刷のときだけ出す見出し（#printhead）を別に置く。
+       並びは 図→色→詳しい説明→いまの位置→担当→つぎにやること→カード→題名とボタン→編集の道具。
+       詳しい説明はカードより前（後ろだと図の丸を押したとき画面外まで飛ばされる）。
+       入れ物の中身は描画のたびに作る。ここに中身を書くと保存のたびに二重になる -->
+  <div class="printhead" id="printhead" aria-hidden="true"></div>
+  <div class="banner" id="banner"></div>
+  <div class="chartbox" id="chart" role="img" aria-label="目標達成までの山型ロードマップ"></div>
+  <!-- 紙用の図。画面用の図（1000×600）を紙の幅いっぱいに広げると高さが出すぎて、
+       下にチェックリストの場所が残らない。紙のときだけ横に広い骨格の図に差し替える
+       （印刷用ファイルと同じ見た目にそろえる） -->
+  <div class="printchart" id="printchart" aria-hidden="true"></div>
+  <!-- 色の意味は図のすぐ下に置く。離すと何の色の話か分からなくなる -->
+  <div class="legend" id="legend">
+    <span><b style="background:var(--st-done)"></b>できた</span>
+    <span><b style="background:var(--st-soon)"></b>早めにやる</span>
+    <span><b style="background:var(--st-urgent)"></b>急ぎ</span>
+    <span><b style="background:var(--st-todo)"></b>これから</span>
+  </div>
+  <section class="panel idle" id="panel"></section>
+  <div id="now" class="noprint"></div>
+  <div id="ownerbar" class="noprint"></div>
+  <div id="nextbar"></div>
+  <div id="cards"></div>
+  <footer class="pagefoot noprint">
+    <div class="pfttl">
+      <h1 id="ttl">登頂ロードマップ</h1>
+      <div class="subttl" id="subttl"></div>
+    </div>
+    <div class="hdr-right">
+      <button id="editBtn">編集モード</button>
+      <button id="printBtn" class="primary">印刷・PDFにする</button>
+      <!-- 公開版（claude.ai の外）だけで出す。中身は端末のブラウザに保存されるので、
+           控えを取る・別の端末へ移すための書き出し／読み込みを置く -->
+      <button id="exportBtn" hidden>ファイルに書き出す</button>
+      <button id="importBtn" hidden>ファイルから読み込む</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+    <p class="localnote" id="localnote" hidden>書いた内容は、この端末のこのブラウザにだけ保存されます（ほかの人には見えません）。
+      ブラウザの履歴やサイトのデータを消すと消えるので、ときどき「ファイルに書き出す」で控えを取ってください。
+      <a id="manualLink" href="https://hiroshit164820-create.github.io/touchou-roadmap-manual/" target="_blank" rel="noopener">使いかた</a></p>
+  </footer>
+  <div class="edittools noprint" id="edittools">
+    <button id="addPeakBtn">＋ 山（中間目標）を追加</button>
+    <button id="editGoalBtn">🚩 ゴールを書き換える</button>
+    <button id="blankBtn" class="warn" hidden>見本を消して白紙から始める</button>
+  </div>
+  <!-- 注意書きはデータ（state.note）から出す。ここに文を直接書くと、
+       別の会社のデータに差し替えても前の会社の注意書きが紙に残る
+       （説明書のサンプルで実際に起きた 2026-09-21） -->
+  <p class="srcnote" id="srcnote"></p>
+  <div class="printlist" id="printlist"></div>
+  <!-- 紙に貼ってから書き込む欄。画面には出さない（印刷のときだけ出る）。
+       壁に貼って毎日見る使い方なので、今週の行動をその場で書けるようにしておく -->
+  <div class="writein" id="writein" aria-hidden="true">
+    <div class="wihd">今週やること（ペンで書く）<span class="wiweek">週：　　／　　　〜　　／　　</span></div>
+    <div class="wiline"></div><div class="wiline"></div>
+  </div>
+</div>
+<div data-app class="saving" id="toast" role="status" aria-live="polite"></div>
+<div data-app class="undobar noprint" id="undo" role="status" aria-live="polite"></div>
+
+<script data-app>
+(function(){
+"use strict";
+
+/* 保存用に、このページを構成する部品だけを描画前に控える。
+   data-app を付けた要素だけを集めるので、閲覧環境が注入したコードは入らない。
+   文字列検索でデータ部分を探すと、この下のコード自身に誤って当たるため、
+   要素単位で組み立てる。（roadmap-board で実証済みの方式） */
+var HEAD_HTML = "", BODY_PARTS = [], DATA_EL = null;
+(function captureParts(){
+  var nodes = document.querySelectorAll("[data-app]");
+  for(var i = 0; i < nodes.length; i++){
+    var el = nodes[i], tag = el.tagName;
+    if(tag === "LINK" || tag === "STYLE"){ HEAD_HTML += el.outerHTML + "\n"; }
+    else if(el.id === "rm-data"){ DATA_EL = el; BODY_PARTS.push(null); }
+    else { BODY_PARTS.push(el.outerHTML); }
+  }
+})();
+
+var $ = function(id){ return document.getElementById(id); };
+var esc = function(s){
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+};
+function textW(s, fs){
+  var w = 0, str = String(s == null ? "" : s);
+  for(var i = 0; i < str.length; i++){
+    w += str.charCodeAt(i) > 255 ? fs : fs * 0.62;
+  }
+  return w;
+}
+function today(){
+  var d = new Date(), p = function(n){ return (n<10?"0":"")+n; };
+  return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate());
+}
+
+/* ---------- 状態 ---------- */
+var state = JSON.parse($("rm-data").textContent);
+/* ---------- 公開版（claude.ai の外で開いたとき） ----------
+   claude.ai の中ではページ自身を publish しなおして保存する（下の flush）。
+   外で開いたときはその仕組みが無いので、この端末のブラウザ（localStorage）に保存する。
+   使う人ごとに自分の目標を書けて、ほかの人には見えない。
+   ページに入っている中身は見本で、一度でも保存したらこの端末の中身が優先される */
+var LOCAL = !(window.claude && window.claude.use);
+var STATE_KEY = "touchou.state.v1";
+var localBroken = false;   /* この端末に保存できない（プライベート表示など） */
+/* 読み込んだ中身が、このページで開ける形かを確かめる。足りない枠は空で補う。開けなければ null */
+function normState(s){
+  if(!s || typeof s !== "object" || Array.isArray(s)) return null;
+  if(!Array.isArray(s.peaks) || !Array.isArray(s.steps)) return null;
+  if(!s.goal || typeof s.goal !== "object") return null;
+  for(var i=0;i<s.peaks.length;i++){
+    var p = s.peaks[i];
+    if(!p || typeof p !== "object" || typeof p.id !== "string" || typeof p.title !== "string") return null;
+  }
+  for(var i=0;i<s.steps.length;i++){
+    var st = s.steps[i];
+    if(!st || typeof st !== "object" || typeof st.id !== "string" || typeof st.peak !== "string"
+       || typeof st.title !== "string") return null;
+    if(["todo","soon","urgent","done"].indexOf(st.status) < 0) st.status = "todo";
+    if(st.tasks != null && !Array.isArray(st.tasks)) delete st.tasks;
+  }
+  if(!s.start || typeof s.start !== "object") s.start = { label:"いま", sub:"" };
+  if(typeof s.goal.title !== "string") s.goal.title = "";
+  /* 番号の続き。無いと新しく足した項目の id が既存と重なる */
+  var mx = 0;
+  function bump(id){ var m = /(\d+)$/.exec(id || ""); if(m) mx = Math.max(mx, +m[1]); }
+  for(var i=0;i<s.peaks.length;i++) bump(s.peaks[i].id);
+  for(var i=0;i<s.steps.length;i++){
+    bump(s.steps[i].id);
+    var tl = s.steps[i].tasks || [];
+    for(var k=0;k<tl.length;k++) bump(tl[k] && tl[k].id);
+  }
+  s.seq = Math.max(Number(s.seq) || 0, mx);
+  return s;
+}
+if(LOCAL){
+  try{
+    var saved = window.localStorage.getItem(STATE_KEY);
+    var ls = saved ? normState(JSON.parse(saved)) : null;
+    if(ls) state = ls;
+    window.localStorage.setItem(STATE_KEY + ".probe", "1");
+    window.localStorage.removeItem(STATE_KEY + ".probe");
+  }catch(e){ localBroken = true; }
+}
+var editMode = false;
+var ownerFilter = "";   /* 画面だけのしぼり込み。保存しない */
+/* 860px以下は縦長の図に切り替える。切り替わったら描き直す */
+var narrowMQ = window.matchMedia("(max-width: 860px)");
+function isNarrow(){ return narrowMQ.matches; }
+var artifactApi = null;
+var downloadsApi = null;
+var canSave = null;
+var sel = null;          /* {kind:"step"|"peak"|"goal", id} */
+var panelMode = "view";  /* view / edit / new */
+/* ここから下の4つも画面だけの状態。state に入れると保存され、ほかの人の画面にも効いてしまう */
+var expanded = {};       /* 畳んだ山のカードを開いているか（山のid → true） */
+var tallyOpen = "";      /* まとめの数を押して開いている一覧（done / soon / todo） */
+var quickAdd = "";       /* その場で追加の入力欄を開いている山のid */
+var qaDraft = "";        /* 追加の入力欄に打ちかけの文字（描き直しで消さないため） */
+var taskDraft = "";      /* タスクの追加欄に打ちかけの文字（同じ理由） */
+var STATUS = [
+  {k:"todo",   label:"これから",   col:"var(--st-todo)"},
+  {k:"soon",   label:"早めにやる", col:"var(--st-soon)"},
+  {k:"urgent", label:"急ぎ",       col:"var(--st-urgent)"},
+  {k:"done",   label:"できた",     col:"var(--st-done)"}
+];
+function stepById(id){
+  for(var i=0;i<state.steps.length;i++) if(state.steps[i].id===id) return state.steps[i];
+  return null;
+}
+function peakById(id){
+  for(var i=0;i<state.peaks.length;i++) if(state.peaks[i].id===id) return state.peaks[i];
+  return null;
+}
+function stepsOf(pid){
+  var r = [];
+  for(var i=0;i<state.steps.length;i++) if(state.steps[i].peak===pid) r.push(state.steps[i]);
+  return r;
+}
+function newId(pre){ state.seq = (state.seq||0)+1; return pre + state.seq; }
+/* 状態を変えるときは必ずここを通す。「できた」にした日を自動で残し、
+   「最近できたこと」と「できた一覧（新しい順）」に使う。できたを外したら日付も消す */
+function setStatus(st, s){
+  if(s === "done" && st.status !== "done") st.doneAt = today();
+  if(s !== "done") delete st.doneAt;
+  st.status = s;
+}
+/* "2026-09-19" → "9/19" */
+function md(iso){
+  var m = /^\d{4}-(\d{2})-(\d{2})$/.exec(iso || "");
+  return m ? (+m[1]) + "/" + (+m[2]) : "";
+}
+function peakNo(pid){
+  for(var i=0;i<state.peaks.length;i++) if(state.peaks[i].id===pid) return i+1;
+  return 0;
+}
+/* ---------- 期日（日付で入れたもの） ----------
+   小目標の dueOn は "YYYY-MM-DD"。自由文の due（「月末まで」「年内」）とは別に持つ。
+   日付が入っているものだけ、残りの日数を数えて、過ぎたものを赤く出す。
+   状態の色（青=できた/黄=早めに/赤=急ぎ/灰=これから）は最初に決めた取り決めなので動かさない。
+   期日は行の中の「札」で出し、丸の色は変えない */
+function dayNum(iso){
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+  return m ? Date.UTC(+m[1], +m[2]-1, +m[3]) / 86400000 : null;
+}
+/* null＝日付が入っていない。kind: over(すぎた) / today(今日) / near(3日以内) /
+   far(まだ先) / kept(できたので期限は関係ない) */
+function dueInfo(st){
+  var d = dayNum(st && st.dueOn);
+  if(d === null) return null;
+  var left = d - dayNum(today());
+  var kind = (st.status === "done") ? "kept"
+    : left < 0 ? "over" : left === 0 ? "today" : left <= 3 ? "near" : "far";
+  var label = kind === "over" ? "⚠ " + (-left) + "日すぎています"
+    : kind === "today" ? "⚠ 今日まで"
+    : kind === "near" ? "あと" + left + "日"
+    : md(st.dueOn) + "まで";
+  return { iso:st.dueOn, left:left, kind:kind, label:label, plain:md(st.dueOn) + "まで" };
+}
+function isOverdue(st){ var d = dueInfo(st); return !!d && d.kind === "over"; }
+/* 期限が過ぎていて、まだできていないもの。しぼり込みは掛けない（数える側で掛ける） */
+function overdueSteps(){
+  var out = [];
+  for(var i=0;i<state.peaks.length;i++){
+    var list = stepsOf(state.peaks[i].id);
+    for(var j=0;j<list.length;j++) if(isOverdue(list[j])) out.push(list[j]);
+  }
+  return out;
+}
+/* 行やパネルに出す期日の札。日付が入っていればこれ、無ければ自由文の due を文字で出す */
+function duePill(st){
+  var d = dueInfo(st);
+  if(!d) return "";
+  return '<span class="duepill ' + d.kind + '">' + esc(d.label) + '</span>';
+}
+/* 紙やテストのための文字だけの期日 */
+function dueText(st){
+  var d = dueInfo(st);
+  if(d) return d.plain + (d.kind === "over" ? "（すぎています）" : "");
+  return st && st.due || "";
+}
+function setDueOn(st, v){
+  v = (v || "").trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v)) st.dueOn = v; else delete st.dueOn;
+}
+/* ---------- 数値の目標（KPI / KGI） ----------
+   山とゴールに { label:"売上", target:100, current:30, unit:"万円" } を持たせ、
+   「いくつまで来たか」を達成率で出す（2026-09-21 本人指示「③KPIの数値化」）。
+   この道具の用途は「意思決定者がKPI/KGIを決めて従業員と共有する」ことなので、
+   達成／未達成の2値だけでなく、途中経過が数で読めるようにする。
+   入っていない山は今までどおり（amount の文字だけ）動く＝古いデータもそのまま開ける。
+   100%になっても自動で「達成」にはしない（登りきったと決めるのは人。期日と同じ考え方） */
+function kpiOf(o){
+  var k = o && o.kpi;
+  if(!k) return null;
+  var t = Number(k.target);
+  if(!isFinite(t) || t <= 0) return null;          /* 目標値が無い・0以下なら数えられない */
+  var c = Number(k.current);
+  if(!isFinite(c)) c = 0;
+  if(c < 0) c = 0;
+  var raw = Math.round(c * 1000 / t) / 10;         /* 小数第1位まで（0.4% のような刻みも見える） */
+  return { label:String(k.label || "").trim(), unit:String(k.unit || "").trim(),
+           target:t, current:c,
+           pct:Math.round(raw),                    /* 文字に出す達成率（整数） */
+           bar:Math.max(0, Math.min(100, raw)) };  /* 棒の長さ。100%で止める */
+}
+/* 3けたごとに区切る。小数は第2位まで残す（円・万円・件のどれでも読めるように） */
+function numFmt(n){
+  var v = Math.round(Number(n) * 100) / 100;
+  var p = String(v).split(".");
+  p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return p.join(".");
+}
+function kpiText(k){ return numFmt(k.current) + "／" + numFmt(k.target) + k.unit; }
+/* 図の札・紙の見出しに出す1行。「30／100万円・30%」 */
+function kpiLine(k){ return kpiText(k) + "・" + k.pct + "%"; }
+/* 画面に出す棒つきの一行。どこに置いても同じ形にする（カード・まとめ・パネル） */
+function kpiMarkup(k, withLabel){
+  return '<div class="kprog">'
+    + (withLabel && k.label ? '<span class="kplbl">' + esc(k.label) + '</span>' : '')
+    + '<span class="kpbar" role="img" aria-label="達成率 ' + k.pct + 'パーセント">'
+    + '<i style="width:' + k.bar + '%"></i></span>'
+    + '<span class="kpnum">' + esc(kpiText(k)) + '</span>'
+    + '<span class="kppct">' + k.pct + '%</span></div>';
+}
+/* 数値の目標をその場で入れる欄。山とゴールで同じ形を使う。
+   編集モードに入らなくても使える（いまの値は毎週変わるため。期日と同じ考え方） */
+function kpiSetMarkup(o){
+  var k = (o && o.kpi) || {}, has = !!kpiOf(o);
+  /* 箱の上の見出しは消えない。打ち始めると消える案内（placeholder）だけに頼ると、
+     どの箱に何を入れるのか分からなくなる（本人指摘 2026-09-21）。
+     「いま」は「いまは何年」と読めたので「いまの数」「目標の数」と言い切る */
+  return '<div class="kpiset noprint"><div class="kpihd">数値の目標</div><div class="kpigrid">'
+    + '<label class="kpif kpif-l"><span>何の数字か</span>'
+    + '<input id="q_kpilabel" value="' + esc(k.label || "") + '" placeholder="売上"></label>'
+    + '<label class="kpif kpif-n"><span>いまの数</span>'
+    + '<input id="q_kpicur" inputmode="decimal" value="'
+    + esc(k.current == null ? "" : k.current) + '" placeholder="300"></label>'
+    + '<label class="kpif kpif-n"><span>目標の数</span>'
+    + '<input id="q_kpitgt" inputmode="decimal" value="'
+    + esc(k.target == null ? "" : k.target) + '" placeholder="1000"></label>'
+    + '<label class="kpif kpif-u"><span>単位</span>'
+    + '<input id="q_kpiunit" value="' + esc(k.unit || "") + '" placeholder="万円"></label>'
+    + '</div><p class="kpiprev" id="q_kpiprev"></p><div class="kpibtns">'
+    + '<button type="button" class="primary" id="q_kpisave">これで決定</button>'
+    + (has ? '<button type="button" id="q_kpiclear">数値をやめる</button>' : '')
+    + '</div></div>';
+}
+/* いま入力されている中身から「こうなります」の1行を作る。
+   押す前に結果が見えていれば、入れる箱を取り違えてもその場で気づける */
+function kpiPreview(){
+  var p = $("q_kpiprev"); if(!p) return;
+  var tgt = toNum(($("q_kpitgt") || {}).value), cur = toNum(($("q_kpicur") || {}).value);
+  var unit = (($("q_kpiunit") || {}).value || "").trim();
+  var label = (($("q_kpilabel") || {}).value || "").trim();
+  if(tgt === null || tgt <= 0){
+    p.className = "kpiprev none";
+    p.textContent = "「目標の数」を入れると、ここに達成率が出ます。";
+    return;
+  }
+  if(cur === null || cur < 0) cur = 0;
+  var pct = Math.round(cur * 1000 / tgt) / 10;
+  p.className = "kpiprev";
+  p.innerHTML = 'こうなります　' + (label ? '<b>' + esc(label) + '</b>　' : '')
+    + 'いま <b>' + numFmt(cur) + '</b>' + esc(unit)
+    + '　／　目標 <b>' + numFmt(tgt) + '</b>' + esc(unit)
+    + '　<span class="pc">' + Math.round(pct) + '%</span>';
+}
+/* 入力された文字を数に直す。「1,000」「1000万円」のように書かれても拾う。
+   空なら null（＝数値の目標を外す） */
+function toNum(v){
+  var s = String(v == null ? "" : v).replace(/[,，\s]/g, "").replace(/[０-９．]/g, function(c){
+    return c === "．" ? "." : String.fromCharCode(c.charCodeAt(0) - 0xFEE0);
+  });
+  var m = /-?\d+(\.\d+)?/.exec(s);
+  return m ? Number(m[0]) : null;
+}
+/* 山・ゴールに数値の目標を入れ直す。目標値が入っていなければ kpi ごと消す */
+function setKpi(o, label, cur, tgt, unit){
+  var t = toNum(tgt);
+  if(t === null || t <= 0){ delete o.kpi; return; }
+  var c = toNum(cur);
+  o.kpi = { label:String(label || "").trim(), target:t,
+            current:(c === null || c < 0) ? 0 : c, unit:String(unit || "").trim() };
+}
+/* ---------- 小目標の中のタスク ----------
+   step.tasks = [{ id:"t31", title:"見積書を2社から取る", done:false }]。
+   小目標を「何をすれば終わるか」の手順まで分けて、開いたときにチェックリストで出す
+   （2026-09-21 本人指示「押したらさらに詳細なタスクが表示されるように」）。
+   省略できる＝無い小目標は今までどおり動く。紙の1枚目には載せない（A4横1枚に収まらなくなる）。
+   2枚目のくわしいカード（印刷用ファイル）にだけ載せる */
+function tasksOf(st){ return (st && Array.isArray(st.tasks)) ? st.tasks : []; }
+function taskCount(st){
+  var l = tasksOf(st), d = 0;
+  for(var i=0;i<l.length;i++) if(l[i].done) d++;
+  return { n:l.length, d:d };
+}
+function taskById(st, id){
+  var l = tasksOf(st);
+  for(var i=0;i<l.length;i++) if(l[i].id === id) return l[i];
+  return null;
+}
+function tasksMarkup(st){
+  var l = tasksOf(st), c = taskCount(st);
+  var h = '<div class="tasks noprint"><div class="taskhd">タスク';
+  if(c.n){
+    h += '<span class="taskn">' + c.d + '／' + c.n + '</span>'
+      + '<span class="taskbar" aria-hidden="true"><i style="width:' + Math.round(c.d*100/c.n) + '%"></i></span>';
+  }
+  h += '</div>';
+  if(!c.n){
+    h += '<p class="tempty2">タスクはまだありません</p>';
+  }else{
+    h += '<ul class="tasklist">';
+    for(var i=0;i<l.length;i++){
+      var t = l[i];
+      /* 行ぜんたいが押せる。押すたびに 済み⇔未済 */
+      h += '<li class="' + (t.done ? "tdone" : "") + '">'
+        + '<button type="button" class="tchk" data-task="' + esc(t.id) + '" aria-pressed="' + (t.done ? "true" : "false") + '">'
+        + '<span class="tbox" aria-hidden="true">' + (t.done ? "✔" : "") + '</span>'
+        + '<span class="ttl">' + esc(t.title) + '</span></button>'
+        /* 消すのは編集モードのときだけ（ふだんの画面に赤いボタンを並べない）。消しても「取り消す」で戻せる */
+        + (editMode ? '<button type="button" class="tdel" data-taskdel="' + esc(t.id)
+           + '" aria-label="「' + esc(t.title) + '」を消す">消す</button>' : '')
+        + '</li>';
+    }
+    h += '</ul>';
+  }
+  h += '<div class="taskadd"><input id="q_taskin" type="text" value="' + esc(taskDraft) + '"'
+    + ' placeholder="新しいタスクの名前" aria-label="新しいタスクの名前" enterkeyhint="done">'
+    + '<button type="button" id="q_taskadd">＋ タスクを追加</button></div>';
+  /* 全部済んだら「できた」を勧める。自動ではしない（期日・KPIと同じ考え方） */
+  if(c.n && c.d === c.n && st.status !== "done"){
+    h += '<div class="tasksug"><span>タスクはぜんぶ済みました。</span>'
+      + '<button type="button" class="suggest" id="q_taskstepdone">✔ この小目標をできたにする</button></div>';
+  }
+  return h + '</div>';
+}
+function selStep(){ return (sel && sel.kind === "step") ? stepById(sel.id) : null; }
+function toggleTask(tid){
+  var st = selStep(), t = taskById(st, tid); if(!t) return;
+  var snap = JSON.stringify(state);
+  t.done = !t.done; commit();
+  offerUndo("「" + t.title + "」を" + (t.done ? "済みにしました" : "まだに戻しました"), snap);
+  /* 描き直したあとも同じ行にとどまる（キーボードで続けて操作できるように） */
+  var b = document.querySelector('#panel [data-task="' + tid + '"]');
+  if(b) b.focus({preventScroll:true});
+}
+function addTask(){
+  var st = selStep(); if(!st) return;
+  var i = $("q_taskin"), name = (i ? i.value : "").trim();
+  if(!name){ toast("タスクの名前を入れてください", true); if(i) i.focus(); return; }
+  var snap = JSON.stringify(state);
+  if(!Array.isArray(st.tasks)) st.tasks = [];
+  st.tasks.push({ id:newId("t"), title:name, done:false });
+  taskDraft = "";
+  commit();
+  var j = $("q_taskin"); if(j) j.focus({preventScroll:true});   /* 続けて足せるように */
+  offerUndo("「" + name + "」を追加しました", snap);
+}
+function deleteTask(tid){
+  var st = selStep(), t = taskById(st, tid); if(!t) return;
+  var snap = JSON.stringify(state);
+  st.tasks = st.tasks.filter(function(x){ return x.id !== tid; });
+  if(!st.tasks.length) delete st.tasks;
+  commit();
+  offerUndo("「" + t.title + "」を消しました", snap);
+}
+/* いま登っている山＝まだ「達成」にしていない最初の山 */
+function currentPeak(){
+  for(var i=0;i<state.peaks.length;i++) if(!state.peaks[i].done) return state.peaks[i];
+  return null;
+}
+/* 図の丸を押したときの切り替わる順番。できたの次は「これから」に戻る */
+var CYCLE = ["todo", "soon", "urgent", "done"];
+function statusLabel(k){
+  for(var i=0;i<STATUS.length;i++) if(STATUS[i].k === k) return STATUS[i].label;
+  return k;
+}
+function cycleStatus(id, byKey){
+  var st = stepById(id); if(!st) return;
+  var next = CYCLE[(CYCLE.indexOf(st.status) + 1) % CYCLE.length];
+  var snap = JSON.stringify(state);
+  setStatus(st, next); commit();
+  offerUndo("「" + st.title + "」を「" + statusLabel(next) + "」にしました", snap);
+  /* キーボードで操作しているときは、描き直したあとも同じ丸にとどまる */
+  if(byKey){
+    var g = document.querySelector('#chart g[data-cycle="' + id + '"]');
+    if(g) g.focus();
+  }
+}
+function countDone(list){
+  var n = 0;
+  for(var i=0;i<list.length;i++) if(list[i].status==="done") n++;
+  return n;
+}
+
+/* ---------- 図形の計算 ---------- */
+/* 図の骨格は画面の幅で2通り持つ。
+   スマホに横長の図を出すと横スクロールになり、全体が一度に見えないまま
+   指で送るたびに現在地を見失う。細く高い比率に組み替えて横スクロールを無くす。
+   そのぶん山の名前は図に入らないので、下のカードで読ませる（番号で対応づける） */
+function chartConf(narrow, forPrint){
+  /* 紙はA4横1枚に「図＋その下にチェックリスト」を載せる（本人指示 2026-09-21）。
+     画面用の 1000×600 をそのまま使うと、紙の幅いっぱいに広げたとき高さが167mmになり、
+     下にチェックリストの場所が残らない。紙のときだけ横に広い骨格にして、
+     幅いっぱい＝高さ約120mm に収める */
+  if(forPrint && !narrow){
+    return { W:1600, H:600, ground:560, startX:56, startY:544,
+             spanW:1240, riseH:330, topY:140, valleyDrop:118, dipRun:80, dipDrop:72,
+             goalShape:"circle", labels:true, levelX:34, levelGap:34,
+             goalX:1442, goalY:118, goalR:64 };
+  }
+  return narrow
+    /* 縦長の図は、山を左に寄せて右端にゴールへの矢印の通り道を空ける。
+       以前は最後の山が右端いっぱいにあり、矢印が山の旗と番号を縦に貫いていた（本人指摘 2026-09-19）。
+       一番高い山も少し下げて、山の番号とゴールの帯・そえがきの間をあける */
+    ? { W:360, H:660, ground:600, startX:24, startY:580,
+        spanW:288, riseH:342, topY:178, valleyDrop:110, dipRun:34, dipDrop:50,
+        goalShape:"band", labels:false, levelX:10, levelGap:22, bySteps:true, arrowAt:0.99 }
+    : { W:1000, H:600, ground:560, startX:42, startY:544,
+        spanW:760, riseH:330, topY:140, valleyDrop:118, dipRun:58, dipDrop:72,
+        goalShape:"circle", labels:true, levelX:26, levelGap:34 };
+}
+function geometry(narrow, forPrint){
+  var c = chartConf(narrow, forPrint);
+  var n = state.peaks.length;
+  var startP = { x:c.startX, y:c.startY };
+  var apexes = [], valleys = [];
+  var rise = c.riseH / Math.max(n,1);
+  var base = c.ground - 80;
+  /* 横幅の配り方。bySteps のときは小目標の数に比例させる。
+     等分にすると、小目標が多い山の斜面だけ丸が詰まって押し分けられなくなる */
+  var wts = [], tot = 1;   /* 末尾の下り分で +1 */
+  for(var i=0;i<n;i++){
+    var wt = c.bySteps ? stepsOf(state.peaks[i].id).length + 1 : 1;
+    wts.push(wt); tot += wt;
+  }
+  if(!c.bySteps) tot = n + 1;
+  var x = c.startX - 2;
+  for(var i=0;i<n;i++){
+    x += c.spanW * wts[i] / tot;
+    apexes.push({ x: x, y: Math.max(c.topY, base - (i+1)*rise) });
+  }
+  for(var i=0;i<n-1;i++){
+    valleys.push({ x:(apexes[i].x+apexes[i+1].x)/2,
+                   y: Math.min(c.ground - 50, apexes[i].y + c.valleyDrop) });
+  }
+  var last = n ? apexes[n-1] : startP;
+  var dip = { x:last.x + c.dipRun, y:last.y + c.dipDrop };
+  var goal, goalFoot = null;
+  if(c.goalShape === "band"){
+    /* 縦長の画面では丸にゴールの文字が入りきらないので、上部の帯にする */
+    goal = { band:true, x:30, y:20, w:c.W - 60, h:64, r:14 };
+    goal.cx = goal.x + goal.w/2; goal.cy = goal.y + goal.h/2;
+  }else{
+    goal = { x:(c.goalX || 886), y:(c.goalY || 118), r:(c.goalR || 64) };
+    /* ゴールは「最後の山頂」。地形をここまで持ち上げてから右端へ落とすと、
+       右半分が空いた三角にならず、ゴールが宙に浮かない */
+    goalFoot = { x:goal.x, y:goal.y + goal.r + 4 };
+  }
+  return { n:n, c:c, start:startP, apexes:apexes, valleys:valleys,
+           dip:dip, goal:goal, goalFoot:goalFoot };
+}
+function slopeAnchor(g, i){ return i===0 ? g.start : g.valleys[i-1]; }
+function onSlope(a, b, t){ return { x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t }; }
+
+/* ---------- 描画 ---------- */
+function render(){
+  $("ttl").textContent = state.title || "登頂ロードマップ";
+  document.title = state.title || "登頂ロードマップ";
+  $("subttl").textContent = (state.subtitle||"") +
+    (state.updated ? "　（最終更新 " + state.updated + "）" : "");
+  $("printhead").innerHTML = '<div class="ph1">' + esc(state.title || "登頂ロードマップ")
+    + (ownerFilter ? '<span class="pwho">' + esc(ownerFilter) + ' の分</span>' : '') + '</div>'
+    + '<div class="ph2">' + esc($("subttl").textContent) + '</div>';
+  /* 注意書き。データに入っていなければ、欄ごと出さない */
+  var note = $("srcnote");
+  note.textContent = state.note || "";
+  note.style.display = state.note ? "" : "none";
+  $("editBtn").textContent = editMode ? "編集をおわる" : "編集モード";
+  $("edittools").className = "edittools noprint" + (editMode ? " show" : "");
+  $("now").innerHTML = nowMarkup();
+  $("nextbar").innerHTML = nextMarkup();
+  $("ownerbar").innerHTML = ownerMarkup();
+  renderChart();
+  $("cards").innerHTML = cardsMarkup(editMode, false);
+  renderPrintList();
+  renderPanel();
+}
+
+/* いまの位置のまとめ。図を読み解かなくても
+   「いまどの山か」「何ができて、何がまだか」が一目で分かるようにする */
+function nowMarkup(){
+  var total = state.steps.length, dn = 0, hot = 0, todo = 0;
+  for(var i=0;i<total;i++){
+    var s = state.steps[i].status;
+    if(s==="done") dn++; else if(s==="urgent" || s==="soon") hot++; else todo++;
+  }
+  var pct = total ? Math.round(dn*100/total) : 0;
+  var cur = currentPeak(), gd = !!state.goal.done;
+  var h = '<div class="now"><p class="nowline"><span class="nowtag">いまここ</span>';
+  if(gd){
+    h += '<span>ゴール「<b>' + esc(state.goal.title||"") + '</b>」に登頂しました。</span>';
+  }else if(!cur){
+    h += '<span>山はすべて登りきりました。あとはゴール「<b>' + esc(state.goal.title||"") + '</b>」です。</span>';
+  }else{
+    var ci = peakNo(cur.id), list = stepsOf(cur.id), left = list.length - countDone(list);
+    h += '<span>山' + ci + '「<b>' + esc(cur.title) + '</b>」を登っているところ。</span>';
+    if(!list.length){
+      h += '<span class="nowsub">この山の小目標はまだありません。</span>';
+    }else if(left){
+      h += '<span class="nowsub">この山はあと' + left + 'つ。</span>';
+    }else{
+      /* 自動で達成にはしない。「登りきった」と決めるのは人の判断 */
+      h += '<span class="nowsub">この山の小目標はぜんぶできました。</span>'
+        + '<button type="button" class="suggest" data-peakdone="' + esc(cur.id) + '">☀ 山' + ci + 'を達成にする</button>';
+    }
+  }
+  h += '</p>';
+
+  /* いま登っている山の数値の目標を、まとめのいちばん上に出す。
+     「何件できたか」の下にあると見落とすので、いまここの文のすぐ下に置く */
+  var curK = cur ? kpiOf(cur) : null, goalK = kpiOf(state.goal);
+  if(curK) h += kpiMarkup(curK, true);
+  if(goalK && (!curK || !cur)) h += kpiMarkup(goalK, true);
+
+  /* 山ごとの進み（左→右は図と同じ順） */
+  h += '<ol class="rail" style="--n:' + state.peaks.length + '">';
+  for(var i=0;i<state.peaks.length;i++){
+    var pk = state.peaks[i], pl = stepsOf(pk.id), pd = countDone(pl);
+    var cls = pk.done ? "done" : (pk === cur ? "cur" : "later");
+    var w = pk.done ? 100 : (pl.length ? Math.round(pd*100/pl.length) : 0);
+    var label = pk.done ? "達成" : (pd + "/" + pl.length);
+    h += '<li class="seg ' + cls + '"><button type="button" class="segbtn" data-open="peak:' + esc(pk.id)
+      + '" aria-label="山' + (i+1) + ' ' + esc(pk.title) + '、' + (pk.done ? "達成" : "小目標 " + pd + "つ／" + pl.length + "つ") + '">'
+      + '<span class="pknum' + (pk.done ? " done" : "") + '">' + (i+1) + '</span>'
+      + '<span class="segn">' + label + '</span>'
+      + '<span class="segt">' + esc(pk.title) + '</span>'
+      + '<span class="segbar"><i style="width:' + w + '%"></i></span></button></li>';
+  }
+  h += '<li class="seg goal' + (gd ? " done" : "") + '"><button type="button" class="segbtn" data-open="goal:goal"'
+    + ' aria-label="ゴール ' + esc(state.goal.title||"") + (gd ? "、登頂" : "") + '">'
+    + '<span class="segflag" aria-hidden="true">🚩</span><span class="segn">' + (gd ? "登頂" : "ゴール") + '</span>'
+    + '<span class="segt">' + esc(state.goal.title||"") + '</span></button></li></ol>';
+
+  /* できた／急ぎ・早めに／これから の数。押すとその一覧が開く */
+  /* 期日をすぎたものは、あるときだけ出す（ふだんは今までどおり3つ） */
+  var over = overdueSteps().length;
+  /* すぎていたものを片付けてボタンが消えたら、開きっぱなしの一覧も閉じる */
+  if(tallyOpen === "over" && !over) tallyOpen = "";
+  h += '<div class="tally">'
+    + (over ? tallyBtn("over", '<span class="overmark" aria-hidden="true">⚠</span>', "期日ぎれ", over) : "")
+    + tallyBtn("done", '<span class="npdot done"></span>', "できた", dn)
+    + tallyBtn("soon", '<span class="npdot urgent"></span><span class="npdot soon"></span>', "急ぎ・早めに", hot)
+    + tallyBtn("todo", '<span class="npdot todo"></span>', "これから", todo)
+    + '<span class="pnum" id="pnum">小目標 ' + dn + ' / ' + total + '（' + pct + '%）</span></div>';
+  if(tallyOpen){
+    h += tallyList(tallyOpen);
+  }else{
+    var last = null;
+    for(var i=0;i<state.steps.length;i++){
+      var st = state.steps[i];
+      if(st.status==="done" && st.doneAt && (!last || st.doneAt >= last.doneAt)) last = st;
+    }
+    if(last){
+      h += '<p class="recent">最近できた　<b>' + md(last.doneAt) + '</b>　' + esc(last.title) + '</p>';
+    }
+  }
+  return h + '</div>';
+}
+function tallyBtn(k, dots, label, n){
+  return '<button type="button" class="tbtn' + (k==="over" ? " over" : "") + '" data-tally="' + k + '" aria-expanded="'
+    + (tallyOpen===k ? "true" : "false") + '">' + dots + label + '<b>' + n + '</b></button>';
+}
+/* 数を押したときに開く一覧。できたものは新しい順（日付が残っていないものは後ろ） */
+function tallyList(k){
+  var items = [];
+  for(var i=0;i<state.steps.length;i++){
+    var st = state.steps[i], s = st.status;
+    var grp = s==="done" ? "done" : (s==="urgent" || s==="soon") ? "soon" : "todo";
+    var hit = (k==="over") ? isOverdue(st) : (grp===k);
+    if(hit && ownedBy(st, ownerFilter)) items.push(st);
+  }
+  if(k==="done"){
+    items.sort(function(a,b){ return (b.doneAt||"").localeCompare(a.doneAt||""); });
+  }else if(k==="soon"){
+    items.sort(function(a,b){ return (a.status==="urgent"?0:1) - (b.status==="urgent"?0:1); });
+  }else if(k==="over"){
+    /* いちばん長く過ぎているものを先に */
+    items.sort(function(a,b){ return (a.dueOn||"").localeCompare(b.dueOn||""); });
+  }
+  var hd = {done:"できたもの（新しい順）", soon:"急ぎ・早めにやるもの", todo:"これからのもの",
+            over:"期日をすぎているもの（長くすぎている順）"}[k];
+  var h = '<p class="tlhd">' + hd + (ownerFilter ? '　' + esc(ownerFilter) + ' の分だけ' : '') + '</p><ul class="tlist">';
+  if(!items.length) h += '<li class="tempty">ありません</li>';
+  for(var i=0;i<items.length;i++){
+    var st = items[i], meta = ["山" + peakNo(st.peak)];
+    if(st.owner) meta.push(st.owner);
+    if(k==="done"){ if(st.doneAt) meta.push(md(st.doneAt) + " できた"); }
+    else if(!st.dueOn && st.due) meta.push(st.due);
+    h += '<li><button type="button" class="trow" data-open="step:' + esc(st.id) + '">'
+      + '<span class="npdot ' + esc(st.status) + '"></span>'
+      + '<span class="npbody"><span class="npt">' + esc(st.title) + '</span>'
+      + '<span class="npm"><span class="npmt">' + esc(meta.join("・")) + '</span>'
+      + (k==="done" ? "" : duePill(st)) + '</span></span></button></li>';
+  }
+  return h + '</ul>';
+}
+
+/* つぎにやること。急ぎ→早めにやる→いまの山の残り、の順で最大3件。
+   印を付けていなくても空にしない（以前は印が無いと何も出なかった）。
+   「担当でしぼる」を選んでいれば、その人の分だけ出す */
+function nextItems(){
+  var out = [], seen = {};
+  function add(st){ if(!seen[st.id] && ownedBy(st, ownerFilter)){ seen[st.id] = 1; out.push(st); } }
+  /* 期日をすぎたものが最優先。長くすぎているものから */
+  var over = overdueSteps().sort(function(a,b){ return (a.dueOn||"").localeCompare(b.dueOn||""); });
+  for(var i=0;i<over.length;i++) add(over[i]);
+  var order = ["urgent", "soon"];
+  for(var r=0;r<order.length;r++){
+    for(var i=0;i<state.peaks.length;i++){
+      var list = stepsOf(state.peaks[i].id);
+      for(var j=0;j<list.length;j++) if(list[j].status===order[r]) add(list[j]);
+    }
+  }
+  /* 印の無い残りは、いまの山から順に探す */
+  var start = 0, cur = currentPeak();
+  if(cur) start = peakNo(cur.id) - 1;
+  for(var i=start;i<state.peaks.length;i++){
+    var list = stepsOf(state.peaks[i].id);
+    for(var j=0;j<list.length;j++) if(list[j].status==="todo") add(list[j]);
+  }
+  return out;
+}
+function nextMarkup(){
+  var items = nextItems();
+  var h = '<div class="nextbar"><div class="nexthd">つぎにやること</div>';
+  if(!items.length){
+    var left = 0;
+    for(var i=0;i<state.steps.length;i++) if(state.steps[i].status!=="done") left++;
+    return h + '<p class="nextnone">' + (!left
+      ? "すべて終わりました。おつかれさまでした。"
+      : ownerFilter ? esc(ownerFilter) + " の分で残っている小目標はありません。"
+      : "残っている小目標はありません。") + '</p></div>';
+  }
+  h += '<ul class="nextlist">';
+  for(var i=0;i<items.length && i<3;i++){
+    var st = items[i], meta = [];
+    if(st.owner) meta.push(st.owner);
+    if(!st.dueOn && st.due) meta.push(st.due);
+    if(st.status==="todo") meta.push("山" + peakNo(st.peak) + "の残り");
+    /* 番号は山ごとに1から振り直すので、ここでは重複して紛らわしい。状態の色玉と名前で示す */
+    var pill = duePill(st);
+    h += '<li class="nextrow"><button type="button" class="nextpill ' + esc(st.status)
+      + (isOverdue(st) ? " overdue" : "") + '" data-open="step:' + esc(st.id) + '">'
+      + '<span class="npdot ' + esc(st.status) + '"></span>'
+      + '<span class="npbody"><span class="npt">' + esc(st.title) + '</span>'
+      + (meta.length || pill ? '<span class="npm"><span class="npmt">' + esc(meta.join("・"))
+         + '</span>' + pill + '</span>' : '')
+      + '</span></button>'
+      + '<button type="button" class="donebtn" data-done="' + esc(st.id) + '" aria-label="「' + esc(st.title)
+      + '」をできたにする"><span aria-hidden="true">✔</span>できた</button></li>';
+  }
+  h += '</ul>';
+  if(items.length > 3) h += '<p class="nextmore">ほか' + (items.length-3) + '件</p>';
+  return h + '</div>';
+}
+
+/* 担当は「田中・佐藤」のような連名で書かれることがあるので、区切って一人ずつ扱う。
+   ひとまとめにすると、その連名だけが別人としてしぼり込みに並んでしまう */
+function ownersOf(st){
+  var raw = (st && st.owner || "").trim();
+  if(!raw) return [];
+  var parts = raw.split(/[・、,，\/／＆&＋+\s]+/);
+  var out = [];
+  for(var i=0;i<parts.length;i++){
+    var p = parts[i].trim();
+    if(p && out.indexOf(p) < 0) out.push(p);
+  }
+  return out;
+}
+function ownedBy(st, who){
+  return !who || ownersOf(st).indexOf(who) >= 0;
+}
+/* 名前の一覧（出てくる順）。しぼり込みの見出しと、記憶の復元に使う */
+function allOwners(){
+  var seen = [];
+  for(var i=0;i<state.steps.length;i++){
+    var names = ownersOf(state.steps[i]);
+    for(var k=0;k<names.length;k++) if(seen.indexOf(names[k]) < 0) seen.push(names[k]);
+  }
+  return seen;
+}
+/* しぼり込みは「この端末で見ている人」の都合なので、state（全員に配られる保存）ではなく
+   端末の記憶（localStorage）に置く。読めない・書けない環境（プライベート表示など）でも
+   画面が動くように、失敗は握りつぶして「全員」で始める */
+var OWNER_KEY = "touchou.ownerFilter.v1";
+function saveOwnerFilter(v){
+  try{ window.localStorage.setItem(OWNER_KEY, v || ""); }catch(e){}
+}
+function restoreOwnerFilter(){
+  var v = "";
+  try{ v = window.localStorage.getItem(OWNER_KEY) || ""; }catch(e){ return; }
+  /* その担当がもう居ないなら（名前を変えた・消した）黙って「全員」に戻す */
+  if(!v || allOwners().indexOf(v) < 0) return;
+  ownerFilter = v;
+  return v;
+}
+
+/* 担当でしぼる。「どちらがボールを持っているか」を見るための画面だけの機能で、
+   選んだ状態は保存しない（人によって見たいものが違うため） */
+function ownerMarkup(){
+  var seen = [], counts = {};
+  for(var i=0;i<state.steps.length;i++){
+    var names = ownersOf(state.steps[i]);
+    for(var k=0;k<names.length;k++){
+      var o = names[k];
+      if(counts[o] === undefined){ counts[o] = 0; seen.push(o); }
+      if(state.steps[i].status !== "done") counts[o]++;
+    }
+  }
+  if(seen.length < 2) return "";
+  var h = '<div class="ownerbar"><span class="ownlbl">担当でしぼる</span>'
+    + '<button type="button" class="ofbtn'+(ownerFilter?"":" on")+'" data-owner="">全員</button>';
+  for(var i=0;i<seen.length;i++){
+    h += '<button type="button" class="ofbtn'+(ownerFilter===seen[i]?" on":"")+'" data-owner="'+esc(seen[i])+'">'
+      + esc(seen[i]) + '<span class="ofnum">' + counts[seen[i]] + '</span></button>';
+  }
+  return h + '</div>';
+}
+
+/* 山ごとのカード。図の丸に振った番号と同じ番号を並べ、
+   どの丸がどの目標なのかを文字で読めるようにする。
+   forPrint のときは押すもの（できた・畳む・追加）を出さず、全部を開いて出す */
+function cardsMarkup(withEdit, forPrint){
+  var h = '<div class="cards">';
+  for(var i=0;i<state.peaks.length;i++){
+    var pk = state.peaks[i];
+    var hdrOn = (sel && sel.kind==="peak" && sel.id===pk.id) ? " on" : "";
+    /* 山の高さの順に段差を付ける。左が低く、右へ行くほど高い（図と同じ並び） */
+    h += '<section class="card" style="--lift:'+(state.peaks.length - 1 - i)+'">';
+    h += '<header class="'+hdrOn.replace(/^ /,"")+'" data-open="peak:'+esc(pk.id)+'" role="button" tabindex="0">'
+      + '<span class="pknum'+(pk.done?" done":"")+'">'+(i+1)+'</span>'
+      + '<h3>' + esc(pk.title) + '</h3>'
+      + (pk.done ? '<span class="donechip">達成</span>' : '')
+      + (pk.amount ? '<span class="amt">'+esc(pk.amount)+'</span>' : '')
+      + (pk.due ? '<span class="cdue">'+esc(pk.due)+'</span>' : '')
+      + '</header>';
+    /* 数値の目標。「できた◯／◯」（小目標の数）とは別の行にして、
+       「何件やったか」と「数字がいくつまで来たか」を取り違えないようにする */
+    var kpc = kpiOf(pk);
+    if(kpc) h += kpiMarkup(kpc, true);
+    var list = stepsOf(pk.id);
+    var dn = countDone(list);
+    var allDone = list.length > 0 && dn === list.length;
+    if(list.length){
+      h += '<div class="cprog"><span class="cprogbar"><i style="width:'
+        + Math.round(dn*100/list.length) + '%"></i></span>'
+        + '<span class="cprognum">できた ' + dn + '／' + list.length + '</span></div>';
+    }
+    /* 達成にした山で、小目標もぜんぶできていれば畳む。
+       残りがある山は畳まない（やることが見えなくなるため） */
+    var foldable = !forPrint && !withEdit && pk.done && allDone;
+    if(foldable && !expanded[pk.id]){
+      h += '<button type="button" class="foldbtn" data-fold="'+esc(pk.id)+'" aria-expanded="false">'
+        + '中の小目標を見る（' + list.length + '）</button></section>';
+      continue;
+    }
+    if(!forPrint && !pk.done && allDone){
+      h += '<div class="cardsug noprint"><span>小目標はぜんぶできました。</span>'
+        + '<button type="button" class="suggest" data-peakdone="'+esc(pk.id)+'">☀ 達成にする</button></div>';
+    }
+    h += '<ul>';
+    if(!list.length){
+      h += '<li class="empty">小目標はまだありません</li>';
+    }
+    for(var j=0;j<list.length;j++){
+      var st = list[j];
+      var on = (sel && sel.kind==="step" && sel.id===st.id) ? " on" : "";
+      var own = ownedBy(st, ownerFilter);
+      /* 紙は「その人の分」を配るためのものなので、担当でしぼったら他の人の行は載せない
+         （画面では薄くして残す。全体の中の位置が分かるほうがよいため） */
+      if(forPrint && !own) continue;
+      var fd = own ? "" : " faded";
+      var meta = [];
+      if(st.owner) meta.push("担当 " + st.owner);
+      if(!st.dueOn && st.due) meta.push(st.due);
+      /* タスクがあれば「タスク 3/7」。中身は行を押したときの説明欄で見る */
+      var tc = taskCount(st);
+      if(tc.n) meta.push("タスク " + tc.d + "/" + tc.n);
+      var pill = duePill(st);
+      h += '<li class="row '+esc(st.status)+on+fd+(isOverdue(st)?" overdue":"")+'">'
+        + '<div class="rowmain" data-open="step:'+esc(st.id)+'" role="button" tabindex="0">'
+        + '<span class="badge '+esc(st.status)+'">'+(j+1)+'</span>'
+        + '<span class="rbody"><span class="rt">'+esc(st.title)+'</span>'
+        + (meta.length || pill ? '<span class="rm">'+esc(meta.join("　"))
+           + (meta.length && pill ? "　" : "") + pill + '</span>' : '')
+        + '</span></div>';
+      if(!forPrint){
+        if(st.status !== "done"){
+          h += '<button type="button" class="donebtn sm" data-done="'+esc(st.id)+'" aria-label="「'
+            + esc(st.title) + '」をできたにする"><span aria-hidden="true">✔</span>できた</button>';
+        }else if(st.doneAt){
+          h += '<span class="donedate" title="できた日">' + md(st.doneAt) + '</span>';
+        }
+      }
+      h += '</li>';
+      /* 紙（印刷用ファイルの2枚目）では、タスクを小目標の下に並べる。ペンで□を塗れるように */
+      if(forPrint && tc.n){
+        var tl = tasksOf(st);
+        h += '<li class="ptaskrow"><ul class="ptasks">';
+        for(var q=0;q<tl.length;q++){
+          h += '<li class="' + (tl[q].done ? "pdone" : "") + '"><span class="pbox">'
+            + (tl[q].done ? "✔" : "") + '</span><span>' + esc(tl[q].title) + '</span></li>';
+        }
+        h += '</ul></li>';
+      }
+    }
+    h += '</ul>';
+    if(foldable){
+      h += '<button type="button" class="foldbtn" data-fold="'+esc(pk.id)+'" aria-expanded="true">たたむ</button>';
+    }
+    if(withEdit){
+      h += '<button type="button" class="addstep noprint" data-open="add:'+esc(pk.id)+'">＋ 小目標を追加</button>';
+    }else if(!forPrint){
+      /* 編集モードに入らなくても、名前だけでその場で足せる */
+      if(quickAdd === pk.id){
+        h += '<div class="qa noprint"><input class="qainput" type="text" value="'+esc(qaDraft)+'"'
+          + ' placeholder="新しい小目標の名前" aria-label="新しい小目標の名前" enterkeyhint="done">'
+          + '<button type="button" class="qaok primary">追加</button>'
+          + '<button type="button" class="qacancel">やめる</button>'
+          + '<button type="button" class="qamore" data-open="add:'+esc(pk.id)+'">担当・期日も入れる</button></div>';
+      }else{
+        h += '<button type="button" class="qabtn noprint" data-qa="'+esc(pk.id)+'">＋ 小目標を追加</button>';
+      }
+    }
+    h += '</section>';
+  }
+  return h + '</div>';
+}
+
+function renderChart(){
+  $("chart").innerHTML = chartMarkup(false, isNarrow());
+  /* 紙用の図（横に広い骨格）。画面には出ないが、印刷のときにこちらが出る */
+  $("printchart").innerHTML = chartMarkup(true, false);
+}
+/* forPrint のときは、画面だけの状態（選んでいる印）を紙に出さない。
+   紙は横向きなので narrow は使わない */
+function chartMarkup(forPrint, narrow){
+  var g = geometry(narrow, forPrint);
+  var c = g.c, W = c.W;
+  var s = "";
+
+  /* 地面と、各山の高さの目安線。飾りではなく「どの山がどれだけ高いか」を示す */
+  var GROUND = c.ground;
+  for(var i=0;i<g.n;i++){
+    var ap = g.apexes[i];
+    s += '<line class="level" x1="'+c.levelX+'" y1="'+ap.y+'" x2="'+(ap.x-c.levelGap)+'" y2="'+ap.y+'"/>';
+  }
+  s += '<line class="ground" x1="0" y1="'+GROUND+'" x2="'+W+'" y2="'+GROUND+'"/>';
+
+  /* ルートの点列。小目標の位置も頂点に入れて、
+     「登った分」と「これから」を同じ線の上で塗り分けられるようにする */
+  var pts = [g.start], stepDraw = [], splitIdx = -1;
+  var hereAt = null, hereN = {x:0, y:-1}, hereFlip = false;
+  for(var i=0;i<g.n;i++){
+    var pk0 = state.peaks[i], a0 = slopeAnchor(g,i), b0 = g.apexes[i];
+    var list0 = stepsOf(pk0.id), m0 = list0.length;
+    for(var j=0;j<m0;j++){
+      var pt0 = onSlope(a0, b0, (j+1)/(m0+1));
+      pts.push(pt0);
+      /* 当たり判定は隣の丸との間隔の半分まで。広げすぎると判定が重なり、
+         押した丸と違う小目標が開く（スマホの斜面は短いので実際に起きる） */
+      var sw = Math.sqrt(Math.pow(b0.x-a0.x,2) + Math.pow(b0.y-a0.y,2)) / (m0+1);
+      stepDraw.push({ st:list0[j], pt:pt0, no:j+1, peak:pk0,
+                      hitR: Math.max(16, Math.min(27, sw/2)) });
+      if(splitIdx < 0 && list0[j].status !== "done"){
+        splitIdx = pts.length - 1;
+        hereAt = pt0;
+        var sdx0 = b0.x-a0.x, sdy0 = b0.y-a0.y, sl0 = Math.sqrt(sdx0*sdx0+sdy0*sdy0) || 1;
+        hereN = { x:sdy0/sl0, y:-sdx0/sl0 };   /* 斜面に垂直で左上を向く向き */
+        /* 2つ目以降の山の最初の小目標は、左上に前の山の期日の文字があるので右下を先に試す */
+        hereFlip = (j === 0 && i > 0);
+      }
+    }
+    pts.push(b0);
+    if(i < g.n-1) pts.push(g.valleys[i]);
+  }
+  pts.push(g.dip);
+  if(splitIdx < 0) splitIdx = pts.length - 1;   /* 全部できている＝ぜんぶ登った */
+
+  /* 山の胴体。ゴールの足元まで持ち上げてから右端で地面に落とす */
+  var dArea = "M" + g.start.x + "," + GROUND;
+  for(var i=0;i<pts.length;i++) dArea += " L" + pts[i].x + "," + pts[i].y;
+  if(g.goalFoot) dArea += " L" + g.goalFoot.x + "," + g.goalFoot.y;
+  dArea += " L" + W + "," + GROUND + " Z";
+  s += '<path class="route-fill" d="' + dArea + '"/>';
+
+  /* 数値の目標（KPI）の達成率を、山の胴体を下から塗って示す（2026-09-21 本人指示）。
+     山ごとに「前の谷（または出発点）→頂上→次の谷」で囲んだ形を切り抜き、
+     地面から達成率ぶんの高さまで塗る＝「その山にどこまで登ったか」が面積で読める。
+     道（実線／破線＝小目標の進み）より先に描いて、道を隠さない。
+     clipPath の id は図ごとに変える（画面用と紙用の図が同じページに2つあるため） */
+  var idp = (forPrint ? "kp" : "ks") + (narrow ? "n" : "w") + "-";
+  for(var i=0;i<g.n;i++){
+    var kp0 = kpiOf(state.peaks[i]);
+    if(!kp0 || kp0.bar <= 0) continue;
+    var a1 = slopeAnchor(g, i), b1 = g.apexes[i], c1 = (i < g.n-1) ? g.valleys[i] : g.dip;
+    var lv = GROUND - (GROUND - b1.y) * kp0.bar / 100;
+    var cid = idp + i;
+    s += '<clipPath id="' + cid + '"><path d="M' + a1.x + ',' + GROUND + ' L' + a1.x + ',' + a1.y
+      + ' L' + b1.x + ',' + b1.y + ' L' + c1.x + ',' + c1.y + ' L' + c1.x + ',' + GROUND + ' Z"/></clipPath>';
+    s += '<rect class="kpifill" x="' + (a1.x-2) + '" y="' + lv + '" width="' + (c1.x-a1.x+4)
+      + '" height="' + (GROUND-lv) + '" clip-path="url(#' + cid + ')"/>';
+    s += '<line class="kpiline" x1="' + a1.x + '" y1="' + lv + '" x2="' + c1.x + '" y2="' + lv
+      + '" clip-path="url(#' + cid + ')"/>';
+  }
+
+  /* 登った分（濃い実線）とこれから（薄い破線）。進み具合が図そのもので分かる */
+  if(splitIdx > 0){
+    var dPast = "M" + pts[0].x + "," + pts[0].y;
+    for(var i=1;i<=splitIdx;i++) dPast += " L" + pts[i].x + "," + pts[i].y;
+    s += '<path class="route" d="' + dPast + '"/>';
+  }
+  if(splitIdx < pts.length-1){
+    var dNext = "M" + pts[splitIdx].x + "," + pts[splitIdx].y;
+    for(var i=splitIdx+1;i<pts.length;i++) dNext += " L" + pts[i].x + "," + pts[i].y;
+    s += '<path class="route route-next" d="' + dNext + '"/>';
+  }
+
+  /* ゴールへの矢印。丸のときは円の手前、帯のときは帯の下辺の手前で止める */
+  var aim = g.goal.band ? { x:g.goal.x + g.goal.w*(c.arrowAt || 0.88), y:g.goal.y + g.goal.h }
+                        : { x:g.goal.x, y:g.goal.y };
+  var stop = g.goal.band ? 13 : g.goal.r + 16;
+  var dx = aim.x - g.dip.x, dy = aim.y - g.dip.y;
+  var len = Math.sqrt(dx*dx + dy*dy) || 1;
+  var ux = dx/len, uy = dy/len;
+  var end = { x: aim.x - ux*stop, y: aim.y - uy*stop };
+  var arrowSeg = { x1:g.dip.x, y1:g.dip.y, x2:end.x, y2:end.y };
+  s += '<line class="arrow" x1="'+g.dip.x+'" y1="'+g.dip.y+'" x2="'+end.x+'" y2="'+end.y+'"/>';
+  var px = -uy, py = ux, hl = 13, hw = 7;
+  s += '<polygon class="arrow-head" points="'
+    + (end.x+ux*hl)+','+(end.y+uy*hl) + ' '
+    + (end.x+px*hw)+','+(end.y+py*hw) + ' '
+    + (end.x-px*hw)+','+(end.y-py*hw) + '"/>';
+
+  /* スタート地点 */
+  s += '<circle cx="'+g.start.x+'" cy="'+g.start.y+'" r="7" fill="var(--ridge)"/>';
+  s += '<text x="'+(g.start.x-4)+'" y="'+(g.start.y+26)+'" class="halo startlbl" font-size="13" font-weight="700">'
+    + esc(state.start.label||"いま") + '</text>';
+  s += '<text x="'+(g.start.x-4)+'" y="'+(g.start.y+42)+'" class="steplbl startlbl">'+esc(state.start.sub||"")+'</text>';
+
+  /* 各山：頂上の旗とラベル（小目標の丸はこのあと最前面にまとめて描く） */
+  for(var i=0;i<g.n;i++){
+    var pk = state.peaks[i];
+    var b = g.apexes[i];
+    var pkSel = !forPrint && sel && sel.kind==="peak" && sel.id===pk.id;
+    /* 紙の図は押せない。目印（data-open など）も付けない。
+       付けると、画面の図と紙用の図で同じ目印が二重になり、押す相手を取り違える
+       （検査が「2つ見つかった」で止まって発覚した 2026-09-21） */
+    s += '<g ' + (forPrint ? '' : 'data-open="peak:'+esc(pk.id)+'" role="button" tabindex="0" ')
+      + 'class="' + (pk.done ? "peak-done" : "") + '" aria-label="中間目標 '+esc(pk.title)+(pk.done?"、達成":"")+'">';
+    s += '<circle class="hit" cx="'+b.x+'" cy="'+(b.y-18)+'" r="30"/>';
+    /* 選んだ印の輪は旗だけを囲む大きさにする。大きいと上の番号や金額の札にかかる（本人指摘 2026-09-19） */
+    /* 達成した山は旗の後ろで緑の円を明滅させる（紙には出さない。印刷用ファイルに定義が無いため） */
+    if(pk.done && !forPrint) s += '<circle class="peakhalo" cx="'+(b.x+9)+'" cy="'+(b.y-15)+'" r="23"/>';
+    if(pkSel) s += '<circle class="selring" cx="'+(b.x+9)+'" cy="'+(b.y-15)+'" r="21"/>';
+    /* 光は旗だけに掛ける。グループ全体に掛けると、
+       透明な当たり判定の円まで光って輪が浮き出る（実際に出た） */
+    /* 光は画面だけ。紙に出すと影が刷られる（印刷用ファイルには定義も無い） */
+    s += '<g class="'+(pk.done && !forPrint ? "glow" : "")+'">';
+    s += '<line class="flagpole" x1="'+b.x+'" y1="'+b.y+'" x2="'+b.x+'" y2="'+(b.y-30)+'"/>';
+    s += '<polygon class="flag" points="'+b.x+','+(b.y-30)+' '+(b.x+22)+','+(b.y-23)+' '+b.x+','+(b.y-16)+'"/>';
+    s += '</g>';
+    if(c.labels){
+      s += '<text class="peak-title halo" x="'+b.x+'" y="'+(b.y-62)+'" text-anchor="middle">'
+        + esc(pk.title) + '</text>';
+      /* 達成した山は金額の札を緑にして「✔ 達成」を頭に付ける（紙は従来どおり）。
+         数値の目標が入っている山は、金額の文字ではなく「30／100万円・30%」を札に出す
+         （紙に貼って毎日見る使い方なので、いくつまで来たかを図の上で読めるようにする） */
+      var won = pk.done && !forPrint;
+      var kpp = kpiOf(pk);
+      var core = kpp ? kpiLine(kpp) : (pk.amount || "");
+      var amt = won ? ("✔ 達成" + (core ? "・" + core : "")) : core;
+      if(amt){
+        var w2 = textW(amt,12)+18;
+        s += '<rect class="peak-amt-bg'+(won?" done":"")+'" x="'+(b.x-w2/2)+'" y="'+(b.y-56)+'" width="'+w2+'" height="18" rx="9"/>';
+        s += '<text class="peak-amt'+(won?" done":"")+'" x="'+b.x+'" y="'+(b.y-43)+'" text-anchor="middle">'+esc(amt)+'</text>';
+      }
+      if(pk.due){
+        /* 旗を選んだときの輪（下端は頂上の6px下）にかからない高さに置く */
+        s += '<text class="peak-due halo" x="'+(b.x+8)+'" y="'+(b.y+24)+'">'+esc(pk.due)+'</text>';
+      }
+    }else{
+      /* 名前を置く幅がないので番号だけ置く。下のカードの見出しと同じ番号 */
+      if(pk.done){
+        /* 達成した山は番号を「1 達成」の札にする。旗の後ろの光の円にかからない高さに置く */
+        var pl2 = (i+1) + " 達成", pw2 = textW(pl2, 13) + 18;
+        s += '<rect class="pkpill" x="'+(b.x-pw2/2)+'" y="'+(b.y-68)+'" width="'+pw2+'" height="26" rx="13"/>';
+        s += '<text class="pkpilltx" x="'+b.x+'" y="'+(b.y-50.5)+'" text-anchor="middle">'+pl2+'</text>';
+      }else{
+        s += '<circle class="pkbadge" cx="'+b.x+'" cy="'+(b.y-52)+'" r="13"/>';
+        s += '<text class="pkbadgetx" x="'+b.x+'" y="'+(b.y-47.5)+'" text-anchor="middle">'+(i+1)+'</text>';
+      }
+    }
+    s += '</g>';
+  }
+
+  /* 小目標の丸。番号だけを置き、名前は下のカードで読ませる
+     （図の上に文字を並べると、稜線や隣の目標と重なって何を指すか読めなくなる） */
+  for(var i=0;i<stepDraw.length;i++){
+    var d = stepDraw[i], st = d.st, pt = d.pt;
+    var isSel = !forPrint && sel && sel.kind==="step" && sel.id===st.id;
+    var faded = (!forPrint && !ownedBy(st, ownerFilter)) ? " faded" : "";
+    /* 図の丸は押すと状態が次へ切り替わる（開かない。本人指示 2026-09-19）。
+       data-open は、どの小目標の丸かを示す目印として残す（検査も使う） */
+    s += '<g class="'+faded.replace(/^ /,"")+'" '
+      + (forPrint ? '' : 'data-open="step:'+esc(st.id)+'" data-cycle="'+esc(st.id)+'" role="button" tabindex="0" ')
+      + 'aria-label="'
+      + esc(d.peak.title) + " の " + d.no + "番目、" + esc(st.title)
+      + (st.owner ? "、担当 " + esc(st.owner) : "") + "、いまは" + statusLabel(st.status) + '">';
+    s += '<circle class="hit" cx="'+pt.x+'" cy="'+pt.y+'" r="'+d.hitR+'"/>';
+    /* できた丸の後ろで明滅する光。選んだ印の枠より先に描いて枠を隠さない。
+       印刷用ファイルのCSSには定義が無く、入れると黒い円で刷られるので紙には出さない */
+    if(!forPrint && st.status === "done"){
+      s += '<circle class="donehalo" cx="'+pt.x+'" cy="'+pt.y+'" r="22"/>';
+    }
+    if(isSel) s += '<circle class="selring" cx="'+pt.x+'" cy="'+pt.y+'" r="21"/>';
+    s += '<circle class="stepc '+esc(st.status)+'" cx="'+pt.x+'" cy="'+pt.y+'" r="15"/>';
+    s += '<text class="stepnum '+esc(st.status)+'" x="'+pt.x+'" y="'+(pt.y+4.5)+'" text-anchor="middle">'+d.no+'</text>';
+    s += '</g>';
+  }
+
+  /* ゴール（二重丸） */
+  var allDone = state.steps.length>0;
+  for(var i=0;i<state.steps.length;i++) if(state.steps[i].status!=="done") allDone=false;
+  var gd = state.goal.done || false;
+  s += '<g ' + (forPrint ? '' : 'data-open="goal:goal" role="button" tabindex="0" ')
+    + 'class="'+(gd && !forPrint ? "glow" : "")
+    + '" aria-label="ゴール '+esc(state.goal.title||"")+'">';
+  if(g.goal.band){
+    s += '<rect class="goal-ring" x="'+g.goal.x+'" y="'+g.goal.y+'" width="'+g.goal.w
+      + '" height="'+g.goal.h+'" rx="'+g.goal.r+'"/>';
+    s += '<rect class="goal-ring2" x="'+(g.goal.x+6)+'" y="'+(g.goal.y+6)+'" width="'+(g.goal.w-12)
+      + '" height="'+(g.goal.h-12)+'" rx="'+(g.goal.r-4)+'"/>';
+    s += '<text class="goal-sub" x="'+g.goal.cx+'" y="'+(g.goal.y+21)+'" text-anchor="middle">'
+      + (gd ? "ゴール（達成しました）" : "ゴール") + '</text>';
+    s += '<text class="goal-title" x="'+g.goal.cx+'" y="'+(g.goal.y+46)+'" text-anchor="middle">'
+      + esc(state.goal.title||"") + '</text>';
+  }else{
+    s += '<circle class="goal-ring" cx="'+g.goal.x+'" cy="'+g.goal.y+'" r="'+g.goal.r+'"/>';
+    s += '<circle class="goal-ring2" cx="'+g.goal.x+'" cy="'+g.goal.y+'" r="'+(g.goal.r-7)+'"/>';
+    s += '<text class="goal-sub" x="'+g.goal.x+'" y="'+(g.goal.y-18)+'" text-anchor="middle">ゴール</text>';
+    s += '<text class="goal-title" x="'+g.goal.x+'" y="'+(g.goal.y+9)+'" text-anchor="middle">'+esc(state.goal.title||"")+'</text>';
+    /* そえがきは円からはみ出すので円の下に置く */
+    if(state.goal.sub){
+      s += '<text class="goal-sub halo" x="'+g.goal.x+'" y="'+(g.goal.y+g.goal.r+18)+'" text-anchor="middle">'
+        + esc(state.goal.sub) + '</text>';
+    }
+    /* ゴール（KGI）の数値。そえがきのさらに下に1行だけ。円の中に入れると文字が溢れる */
+    var gk = kpiOf(state.goal);
+    if(gk){
+      s += '<text class="goal-kpi halo" x="'+g.goal.x+'" y="'
+        + (g.goal.y + g.goal.r + (state.goal.sub ? 40 : 18)) + '" text-anchor="middle">'
+        + esc(kpiLine(gk)) + '</text>';
+    }
+    if(gd){
+      s += '<text class="goal-sub halo" x="'+g.goal.x+'" y="'+(g.goal.y-g.goal.r-12)+'" text-anchor="middle">達成しました</text>';
+    }
+  }
+  s += '</g>';
+  /* そえがきは押せる範囲の外に出す。中に入れると、押せる範囲が縦に伸びて
+     すぐ下の山の判定と重なる（実測で重なりが出た） */
+  if(g.goal.band && state.goal.sub){
+    s += '<text class="goal-sub halo" x="'+g.goal.cx+'" y="'+(g.goal.y+g.goal.h+18)
+      + '" text-anchor="middle">' + esc(state.goal.sub) + '</text>';
+  }
+  if(g.goal.band){
+    var gk2 = kpiOf(state.goal);
+    if(gk2){
+      /* そえがきの下に置く。18pxだと字の高さで触れる（実測で1.1pxまで詰まった）ので40px下げる */
+      s += '<text class="goal-kpi halo" x="'+g.goal.cx+'" y="'
+        + (g.goal.y + g.goal.h + (state.goal.sub ? 40 : 18)) + '" text-anchor="middle">'
+        + esc(kpiLine(gk2)) + '</text>';
+    }
+  }
+
+  /* 現在地チップ。ほかの丸・旗・番号・文字・矢印に重ならない置き場所を、候補の中から選ぶ。
+     以前は決まった向きに出していて、スマホの図で丸や山の番号に重なった（本人指摘 2026-09-19）。
+     引き出し線は丸の縁の手前で止める（中まで引くと丸の番号の上を線が通る） */
+  if(hereAt){
+    var pos = placeHere(hereAt, hereN, hereFlip, chartObstacles(g, stepDraw, hereAt, arrowSeg), W, c.H);
+    var hw2 = 66, cx2 = pos.x, cy2 = pos.y;
+    var hx = cx2 - hw2/2, hy = cy2 - 11;
+    var ldx = cx2 - hereAt.x, ldy = cy2 - hereAt.y, ll = Math.sqrt(ldx*ldx + ldy*ldy) || 1;
+    /* 丸を選んだときの輪（半径21）にもかからないところで止める */
+    var lx = hereAt.x + ldx/ll*24, ly = hereAt.y + ldy/ll*24;
+    s += '<g class="here noprint" aria-hidden="true">';
+    s += '<line class="here-lead" x1="'+cx2+'" y1="'+cy2+'" x2="'+lx+'" y2="'+ly+'"/>';
+    s += '<rect class="here-bg" x="'+hx+'" y="'+hy+'" width="'+hw2+'" height="22" rx="11"/>';
+    s += '<text class="here-tx" x="'+cx2+'" y="'+(hy+15)+'" text-anchor="middle">いまここ</text>';
+    s += '</g>';
+  }
+
+  return '<svg viewBox="0 0 '+W+' '+c.H+'" xmlns="http://www.w3.org/2000/svg">' + s + '</svg>';
+}
+
+/* ---------- 「いまここ」の置き場所を決める ---------- */
+/* 図の中で、ほかの部品が占めている場所の一覧（c=円、s=線分、それ以外は四角）。描く位置と同じ計算で出す */
+function chartObstacles(g, stepDraw, target, arrowSeg){
+  var o = [], c = g.c;
+  for(var i=0;i<stepDraw.length;i++){
+    var p = stepDraw[i].pt;
+    o.push({ c:true, x:p.x, y:p.y, r:15, self:(p === target) });
+  }
+  for(var i=0;i<g.n;i++){
+    var b = g.apexes[i], pk = state.peaks[i];
+    o.push({ x:b.x-2, y:b.y-31, w:26, h:32 });                       /* 旗 */
+    if(c.labels){
+      var tw = textW(pk.title, 16);
+      o.push({ x:b.x-tw/2, y:b.y-77, w:tw, h:19 });                  /* 山の名前 */
+      /* 札の文言は描くときと同じ式で出す（食い違うと、すきまの計算が実際の札とずれる） */
+      var kp2 = kpiOf(pk), core2 = kp2 ? kpiLine(kp2) : (pk.amount || "");
+      var amt2 = pk.done ? ("✔ 達成" + (core2 ? "・" + core2 : "")) : core2;
+      if(amt2){ var w2 = textW(amt2, 12) + 18; o.push({ x:b.x-w2/2, y:b.y-56, w:w2, h:18 }); }
+      if(pk.due){ o.push({ x:b.x+8, y:b.y+12, w:textW(pk.due, 12), h:15 }); }
+    }else{
+      if(pk.done){ var pw3 = textW((i+1) + " 達成", 13) + 18; o.push({ x:b.x-pw3/2, y:b.y-68, w:pw3, h:26 }); }
+      else o.push({ c:true, x:b.x, y:b.y-52, r:13 });                /* 山の番号 */
+      if(pk.done) o.push({ c:true, x:b.x+9, y:b.y-15, r:23 });       /* 達成の光の円 */
+    }
+  }
+  var gl = g.goal, gk3 = kpiOf(state.goal);
+  /* ゴールの下には、そえがきと（入っていれば）数値の行が付く。その分まで場所を取っておく */
+  var gExtra = (state.goal.sub ? 22 : 0) + (gk3 ? 26 : 0);
+  if(gl.band){ o.push({ x:gl.x, y:gl.y, w:gl.w, h:gl.h + 4 + gExtra }); }   /* 帯とそえがき・数値 */
+  else{
+    o.push({ c:true, x:gl.x, y:gl.y, r:gl.r + 2 });
+    var sw2 = Math.max(textW(state.goal.sub || "", 12), gk3 ? textW(kpiLine(gk3), 12) : 0);
+    if(sw2) o.push({ x:gl.x - sw2/2, y:gl.y + gl.r + 6, w:sw2, h:Math.max(16, gExtra - 6) });
+  }
+  o.push({ x:g.start.x-8, y:g.start.y-8, w:80, h:56 });              /* スタートの「いま」 */
+  o.push({ s:true, x1:arrowSeg.x1, y1:arrowSeg.y1, x2:arrowSeg.x2, y2:arrowSeg.y2 });
+  return o;
+}
+function dPtRect(px, py, r){
+  var nx = Math.max(r.x, Math.min(px, r.x + r.w)), ny = Math.max(r.y, Math.min(py, r.y + r.h));
+  return Math.sqrt((px-nx)*(px-nx) + (py-ny)*(py-ny));
+}
+/* 線分を3pxごとに刻んだ点。線と図形の距離は、この点ごとの距離の最小で見る */
+function segPts(x1, y1, x2, y2){
+  var n = Math.max(2, Math.ceil(Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1)) / 3)), out = [];
+  for(var k=0;k<=n;k++) out.push({ x:x1 + (x2-x1)*k/n, y:y1 + (y2-y1)*k/n });
+  return out;
+}
+/* 置き場所の候補を順に試し、札も引き出し線もほかの部品に触れない最初のものを使う。
+   どれも触れるときは、いちばんすきまが大きいものを使う */
+function placeHere(t, n, flip, obs, W, H){
+  var sides = flip ? [-1, 1] : [1, -1], angles = [0, 30, -30, 55, -55, 80, -80], dists = [54, 70, 90, 112];
+  var best = null, bestScore = -1e9;
+  for(var a=0;a<sides.length;a++) for(var d=0;d<dists.length;d++) for(var k=0;k<angles.length;k++){
+    var th = angles[k] * Math.PI / 180, sx = n.x * sides[a], sy = n.y * sides[a];
+    var vx = sx*Math.cos(th) - sy*Math.sin(th), vy = sx*Math.sin(th) + sy*Math.cos(th);
+    var cx = t.x + vx*dists[d], cy = t.y + vy*dists[d];
+    var R = { x:cx-33, y:cy-11, w:66, h:22 };
+    if(R.x < 4 || R.y < 4 || R.x + R.w > W - 4 || R.y + R.h > H - 4) continue;
+    var lead = segPts(cx, cy, t.x + vx*24, t.y + vy*24), score = 1e9;
+    for(var i=0;i<obs.length;i++){
+      var ob = obs[i], m;
+      if(ob.s){
+        var sp = segPts(ob.x1, ob.y1, ob.x2, ob.y2); m = 1e9;
+        for(var q=0;q<sp.length;q++) m = Math.min(m, dPtRect(sp[q].x, sp[q].y, R));
+      }else if(ob.c){
+        /* 丸は、選んだときに出る輪（半径21＋線の太さ）の大きさで見積もる */
+        m = dPtRect(ob.x, ob.y, R) - (ob.r === 15 ? 23 : ob.r);
+        if(!ob.self){
+          for(var q=0;q<lead.length;q++){
+            var ex = lead[q].x - ob.x, ey = lead[q].y - ob.y;
+            m = Math.min(m, Math.sqrt(ex*ex + ey*ey) - ob.r);
+          }
+        }
+      }else{
+        var dx2 = Math.max(ob.x - (R.x + R.w), R.x - (ob.x + ob.w), 0);
+        var dy2 = Math.max(ob.y - (R.y + R.h), R.y - (ob.y + ob.h), 0);
+        m = (dx2 || dy2) ? Math.sqrt(dx2*dx2 + dy2*dy2) : -1;
+        for(var q=0;q<lead.length;q++) m = Math.min(m, dPtRect(lead[q].x, lead[q].y, ob) - 0.5);
+      }
+      score = Math.min(score, m);
+    }
+    if(score >= 3) return { x:cx, y:cy };
+    if(score > bestScore){ bestScore = score; best = { x:cx, y:cy }; }
+  }
+  return best || { x:t.x, y:Math.max(15, t.y - 54) };
+}
+
+/* ---------- 印刷用チェックリスト（紙に貼ってペンで丸を付ける用） ---------- */
+function renderPrintList(){
+  /* 担当でしぼっていれば、その人の分だけの紙にする。
+     従業員それぞれに「自分の紙」を配れるようにするため（本人指示 2026-09-21）。
+     山の並びは変えない＝図の番号と紙の番号が食い違わないようにする */
+  var h = '<h2>小目標チェックリスト（できたら○を塗る）'
+    + (ownerFilter ? '<span class="pwho">' + esc(ownerFilter) + ' の分</span>' : '') + '</h2>';
+  for(var i=0;i<state.peaks.length;i++){
+    var pk = state.peaks[i];
+    /* 山ひとつぶん（見出し＋小目標）を1つの箱に包み、印刷でページの境目に
+       かかったら箱ごと次のページへ送る。見出しだけ前のページに残る事故を防ぐ */
+    h += '<section class="psec">';
+    /* 数値の目標は紙にも出す。壁に貼ったまま「いまいくつか」を読めるようにするため。
+       数値が入っている山は金額の文字を出さない（同じことが二重に並び、
+       見出しが折り返して1枚に収まらなくなる。実測で2枚になった 2026-09-21） */
+    var pkk = kpiOf(pk);
+    h += '<h3>⛰ ' + esc(pk.title)
+      + (pkk? '　<span class="pkpi">' + esc(kpiLine(pkk)) + '</span>'
+            : (pk.amount? '　' + esc(pk.amount):''))
+      + (pk.due? '　<span class="pmeta">' + esc(pk.due) + '</span>':'') + '</h3><ul>';
+    var all = stepsOf(pk.id), list = [];
+    for(var k=0;k<all.length;k++) if(ownedBy(all[k], ownerFilter)) list.push(all[k]);
+    if(!list.length) h += '<li class="pmeta">' + (all.length ? '（担当なし）' : '（小目標なし）') + '</li>';
+    for(var j=0;j<list.length;j++){
+      var st = list[j];
+      var dt = dueText(st);
+      h += '<li><span class="mark"></span>' + esc(st.title)
+        + '<span class="pmeta">' + (st.owner? '　担当:'+esc(st.owner):'')
+        + (dt? '　'+esc(dt):'') + '</span></li>';
+    }
+    h += '</ul></section>';
+  }
+  var glk = kpiOf(state.goal);
+  h += '<h3>🚩 ゴール：' + esc(state.goal.title||"")
+    + (glk? '　<span class="pkpi">' + esc(kpiLine(glk)) + '</span>':'')
+    + '　<span class="pmeta">' + esc(state.goal.sub||"") + '</span></h3>';
+  $("printlist").innerHTML = h;
+}
+
+/* ---------- 詳細パネル ---------- */
+function statusChips(cur, name){
+  var h = '<div class="chips">';
+  for(var i=0;i<STATUS.length;i++){
+    var st = STATUS[i];
+    h += '<button type="button" class="chip c-'+st.k+(cur===st.k?" active":"")
+      + '" data-chip="'+st.k+'" data-chipname="'+esc(name)+'">'
+      + '<b style="background:'+st.col+'"></b>' + st.label + '</button>';
+  }
+  return h + '</div>';
+}
+function delButton(){
+  return '<button type="button" class="warn" id="delBtn">削除する</button>';
+}
+function renderPanel(){
+  var p = $("panel");
+  p.className = "panel" + (sel ? "" : " idle");
+  if(!sel){ p.innerHTML = ""; return; }
+  var h = "";
+  if(sel.kind === "step"){
+    var st = panelMode==="new" ? null : stepById(sel.id);
+    if(panelMode==="view" && st){
+      var pk = peakById(st.peak);
+      h += '<h2>'+esc(st.title)+'</h2>';
+      h += '<div class="meta">⛰ '+esc(pk?pk.title:"")
+        + (st.owner? '　｜　担当: <b>'+esc(st.owner)+'</b>':'')
+        + (!st.dueOn && st.due? '　｜　'+esc(st.due):'')
+        + (st.dueOn? '　｜　'+duePill(st):'') + '</div>';
+      if(st.detail) h += '<div class="detail">'+esc(st.detail)+'</div>';
+      /* タスクは説明のすぐ下。開いてまず目に入るのが「何をすれば終わるか」になるように */
+      h += tasksMarkup(st);
+      h += statusChips(st.status, "status");
+      /* 期日は編集モードに入らなくても入れ替えできる（日付を入れる手間を減らす） */
+      h += '<div class="duerow noprint"><label for="q_dueon">期日</label>'
+        + '<input type="date" id="q_dueon" value="'+esc(st.dueOn||"")+'">'
+        + (st.dueOn ? '<button type="button" id="q_dueclear">日付を消す</button>' : '')
+        + '</div>';
+      h += '<div class="panelbtns noprint">';
+      if(editMode) h += '<button type="button" id="editItemBtn">書き換える</button>' + delButton();
+      h += '<button type="button" id="closeBtn">とじる</button></div>';
+    }else{
+      var v = st || {title:"",owner:"",due:"",detail:"",status:"todo"};
+      h += '<h2>'+(panelMode==="new"?"小目標を追加":"小目標を書き換える")+'</h2>';
+      h += '<div class="form">'
+        + '<div><label>小目標の名前</label><input id="f_title" value="'+esc(v.title)+'"></div>'
+        + '<div class="frow">'
+        + '<div><label>担当</label><input id="f_owner" value="'+esc(v.owner)+'" placeholder="田中 / 佐藤 など"></div>'
+        + '<div><label>期日（日付）</label><input type="date" id="f_dueon" value="'+esc(v.dueOn||"")+'"></div>'
+        + '</div>'
+        + '<div><label>期日を文字で書くとき（日付を入れたときは要りません）</label>'
+        + '<input id="f_due" value="'+esc(v.due)+'" placeholder="9月中 など"></div>'
+        + '<div><label>詳しいメモ（押したときに出る説明）</label><textarea id="f_detail">'+esc(v.detail)+'</textarea></div>'
+        + '</div>';
+      h += statusChips(v.status, "form");
+      h += '<div class="panelbtns"><button type="button" class="primary" id="saveItemBtn">これで決定</button>'
+        + '<button type="button" id="cancelBtn">やめる</button></div>';
+    }
+  }else if(sel.kind === "peak"){
+    var pk = panelMode==="new" ? null : peakById(sel.id);
+    if(panelMode==="view" && pk){
+      h += '<h2>⛰ '+esc(pk.title)+'</h2>';
+      h += '<div class="meta">'+(pk.amount? '金額: <b>'+esc(pk.amount)+'</b>':'')
+        + (pk.due? '　｜　時期: '+esc(pk.due):'')
+        + '　｜　小目標 '+stepsOf(pk.id).length+'個</div>';
+      if(pk.detail) h += '<div class="detail">'+esc(pk.detail)+'</div>';
+      /* 数値の目標。いまの値は編集モードに入らずここで入れ替えられる */
+      var pkk2 = kpiOf(pk);
+      if(pkk2) h += kpiMarkup(pkk2, true);
+      h += kpiSetMarkup(pk);
+      h += '<div class="panelbtns noprint">';
+      h += '<button type="button" class="'+(pk.done?"":"primary")+'" id="peakDoneBtn">'
+        + (pk.done ? "達成を取り消す" : "☀ 達成した！（頂上を光らせる）") + '</button>';
+      if(editMode) h += '<button type="button" id="editItemBtn">書き換える</button>' + delButton();
+      h += '<button type="button" id="closeBtn">とじる</button></div>';
+    }else{
+      var v = pk || {title:"",amount:"",due:"",detail:""};
+      h += '<h2>'+(panelMode==="new"?"山（中間目標）を追加":"中間目標を書き換える")+'</h2>';
+      if(panelMode==="new" && state.peaks.length>=3){
+        h += '<p class="hint">※ 大きい目標は3つまでにしておくと、見る人が覚えやすく、図も読みやすくなります。</p>';
+      }
+      h += '<div class="form">'
+        + '<div><label>中間目標の名前（頂上に出ます）</label><input id="f_title" value="'+esc(v.title)+'"></div>'
+        + '<div class="frow">'
+        + '<div><label>金額（頂上の札に出ます）</label><input id="f_amount" value="'+esc(v.amount)+'" placeholder="300万円 など"></div>'
+        + '<div><label>時期</label><input id="f_due" value="'+esc(v.due)+'" placeholder="今年中 など"></div>'
+        + '</div>'
+        + '<div><label>詳しいメモ</label><textarea id="f_detail">'+esc(v.detail)+'</textarea></div>'
+        + '</div>';
+      h += '<div class="panelbtns"><button type="button" class="primary" id="saveItemBtn">これで決定</button>'
+        + '<button type="button" id="cancelBtn">やめる</button></div>';
+    }
+  }else if(sel.kind === "goal"){
+    if(panelMode==="view"){
+      h += '<h2>🚩 ゴール：'+esc(state.goal.title||"")+'</h2>';
+      if(state.goal.sub) h += '<div class="meta">'+esc(state.goal.sub)+'</div>';
+      if(state.goal.detail) h += '<div class="detail">'+esc(state.goal.detail)+'</div>';
+      /* ゴール（KGI）の数値。山と同じ形で入れられるようにする */
+      var glk2 = kpiOf(state.goal);
+      if(glk2) h += kpiMarkup(glk2, true);
+      h += kpiSetMarkup(state.goal);
+      h += '<div class="panelbtns noprint">';
+      h += '<button type="button" class="'+(state.goal.done?"":"primary")+'" id="goalDoneBtn">'
+        + (state.goal.done ? "達成を取り消す" : "🎉 登頂した！") + '</button>';
+      if(editMode) h += '<button type="button" id="editItemBtn">書き換える</button>';
+      h += '<button type="button" id="closeBtn">とじる</button></div>';
+    }else{
+      var v = state.goal;
+      h += '<h2>ゴールを書き換える</h2>';
+      h += '<div class="form">'
+        + '<div><label>ゴール（丸の中の大きい文字）</label><input id="f_title" value="'+esc(v.title)+'"></div>'
+        + '<div><label>そえがき（丸の中の小さい文字）</label><input id="f_sub" value="'+esc(v.sub)+'"></div>'
+        + '<div><label>詳しいメモ</label><textarea id="f_detail">'+esc(v.detail)+'</textarea></div>'
+        + '<div><label>いちばん下に出す注意書き（紙にも出ます）</label>'
+        + '<textarea id="f_note">'+esc(state.note||"")+'</textarea></div>'
+        + '</div>';
+      h += '<div class="panelbtns"><button type="button" class="primary" id="saveItemBtn">これで決定</button>'
+        + '<button type="button" id="cancelBtn">やめる</button></div>';
+    }
+  }
+  p.innerHTML = h;
+  bindPanel();
+}
+function bindPanel(){
+  var b;
+  /* とじる・やめる は選択そのものを解くので、図とカードの印も一緒に消す。
+     renderPanel だけだと、選んだ枠が残って「まだ選ばれている」ように見える */
+  if(b = $("closeBtn")) b.addEventListener("click", function(){ sel=null; panelMode="view"; render(); });
+  if(b = $("cancelBtn")) b.addEventListener("click", function(){
+    if(panelMode==="new"){ sel=null; }
+    panelMode="view"; render();
+  });
+  if(b = $("editItemBtn")) b.addEventListener("click", function(){ panelMode="edit"; renderPanel(); });
+  /* 期日をその場で入れ替える。押し間違いは「取り消す」で戻せる */
+  if(b = $("q_dueon")) b.addEventListener("change", function(){
+    var st = stepById(sel.id); if(!st) return;
+    var v = this.value;
+    if((st.dueOn || "") === v) return;
+    var snap = JSON.stringify(state);
+    setDueOn(st, v); commit();
+    offerUndo(st.dueOn ? "期日を " + st.dueOn + " にしました" : "期日を消しました", snap);
+  });
+  if(b = $("q_dueclear")) b.addEventListener("click", function(){
+    var st = stepById(sel.id); if(!st || !st.dueOn) return;
+    var snap = JSON.stringify(state);
+    setDueOn(st, ""); commit();
+    offerUndo("期日を消しました", snap);
+  });
+  /* 数値の目標を入れる・入れ替える。押し間違いは「取り消す」で戻せる */
+  function kpiTarget(){
+    if(!sel) return null;
+    if(sel.kind === "goal") return state.goal;
+    if(sel.kind === "peak") return peakById(sel.id);
+    return null;
+  }
+  /* 打つそばから結果を出す。欄を開いた直後にも1回出しておく */
+  if(b = $("q_kpiprev")){
+    kpiPreview();
+    var box = b.parentNode;
+    box.addEventListener("input", kpiPreview);
+  }
+  if(b = $("q_kpisave")) b.addEventListener("click", function(){
+    var o = kpiTarget(); if(!o) return;
+    var tgt = $("q_kpitgt").value;
+    if(toNum(tgt) === null || toNum(tgt) <= 0){
+      toast("「目標の数」を入れてください", true); $("q_kpitgt").focus(); return;
+    }
+    var snap = JSON.stringify(state);
+    setKpi(o, $("q_kpilabel").value, $("q_kpicur").value, tgt, $("q_kpiunit").value);
+    commit();
+    var k = kpiOf(o);
+    offerUndo(k ? "数値の目標を " + kpiText(k) + "（" + k.pct + "%）にしました" : "数値の目標を外しました", snap);
+  });
+  if(b = $("q_kpiclear")) b.addEventListener("click", function(){
+    var o = kpiTarget(); if(!o || !o.kpi) return;
+    var snap = JSON.stringify(state);
+    delete o.kpi; commit();
+    offerUndo("数値の目標を外しました", snap);
+  });
+  /* タスク：押して済み⇔未済、編集モードで消す、下の欄で追加 */
+  var tbs = document.querySelectorAll("#panel [data-task]");
+  for(var i=0;i<tbs.length;i++){
+    tbs[i].addEventListener("click", function(){ toggleTask(this.dataset.task); });
+  }
+  var tds = document.querySelectorAll("#panel [data-taskdel]");
+  for(var i=0;i<tds.length;i++){
+    tds[i].addEventListener("click", function(){ deleteTask(this.dataset.taskdel); });
+  }
+  if(b = $("q_taskin")){
+    b.addEventListener("input", function(){ taskDraft = this.value; });
+    b.addEventListener("keydown", function(e){
+      /* 日本語入力の変換確定の Enter では追加しない（Safari は isComposing を立てず 229 を返す） */
+      if(e.key === "Enter" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); addTask(); }
+    });
+  }
+  if(b = $("q_taskadd")) b.addEventListener("click", addTask);
+  if(b = $("q_taskstepdone")) b.addEventListener("click", function(){
+    var st = selStep(); if(st) markDone(st.id);
+  });
+  if(b = $("peakDoneBtn")) b.addEventListener("click", function(){
+    var pk = peakById(sel.id); if(!pk) return;
+    var snap = JSON.stringify(state);
+    pk.done = !pk.done; commit();
+    offerUndo("山" + peakNo(pk.id) + "を" + (pk.done ? "達成にしました" : "達成から戻しました"), snap);
+  });
+  if(b = $("goalDoneBtn")) b.addEventListener("click", function(){
+    var snap = JSON.stringify(state);
+    state.goal.done = !state.goal.done; commit();
+    offerUndo(state.goal.done ? "ゴールに登頂しました" : "登頂を取り消しました", snap);
+  });
+  if(b = $("delBtn")) b.addEventListener("click", function(){
+    if(!this.dataset.armed){
+      this.dataset.armed = "1"; this.className = "armed";
+      this.textContent = sel.kind==="peak"
+        ? "本当に削除する（中の小目標も消えます・もう一度押す）"
+        : "本当に削除する（もう一度押す）";
+      return;
+    }
+    var snap = JSON.stringify(state);
+    if(sel.kind==="step"){
+      state.steps = state.steps.filter(function(x){ return x.id!==sel.id; });
+    }else if(sel.kind==="peak"){
+      state.steps = state.steps.filter(function(x){ return x.peak!==sel.id; });
+      state.peaks = state.peaks.filter(function(x){ return x.id!==sel.id; });
+    }
+    sel = null; panelMode = "view"; commit();
+    offerUndo("削除しました", snap);
+  });
+  if(b = $("saveItemBtn")) b.addEventListener("click", function(){
+    var title = ($("f_title")||{}).value || "";
+    title = title.trim();
+    if(!title){ toast("名前を入れてください", true); return; }
+    if(sel.kind==="step"){
+      var chipEl = document.querySelector('.chip.active[data-chipname="form"]');
+      var stv = chipEl ? chipEl.dataset.chip : "todo";
+      if(panelMode==="new"){
+        var it = { id:newId("s"), peak:sel.peak, title:title,
+          owner:$("f_owner").value.trim(), due:$("f_due").value.trim(),
+          status:"todo", detail:$("f_detail").value.trim() };
+        setDueOn(it, $("f_dueon").value);
+        setStatus(it, stv);
+        state.steps.push(it);
+        sel = {kind:"step", id:it.id};
+      }else{
+        var it = stepById(sel.id); if(!it) return;
+        it.title = title; it.owner = $("f_owner").value.trim();
+        it.due = $("f_due").value.trim(); it.detail = $("f_detail").value.trim();
+        setDueOn(it, $("f_dueon").value);
+        setStatus(it, stv);
+      }
+    }else if(sel.kind==="peak"){
+      if(panelMode==="new"){
+        var pk = { id:newId("p"), title:title, amount:$("f_amount").value.trim(),
+          due:$("f_due").value.trim(), detail:$("f_detail").value.trim(), done:false };
+        state.peaks.push(pk);
+        sel = {kind:"peak", id:pk.id};
+      }else{
+        var pk = peakById(sel.id); if(!pk) return;
+        pk.title = title; pk.amount = $("f_amount").value.trim();
+        pk.due = $("f_due").value.trim(); pk.detail = $("f_detail").value.trim();
+      }
+    }else if(sel.kind==="goal"){
+      state.goal.title = title;
+      state.goal.sub = $("f_sub").value.trim();
+      state.goal.detail = $("f_detail").value.trim();
+      state.note = $("f_note").value.trim();
+    }
+    panelMode = "view"; commit();
+  });
+  var chips = document.querySelectorAll(".chip");
+  for(var i=0;i<chips.length;i++){
+    chips[i].addEventListener("click", function(){
+      var name = this.dataset.chipname;
+      if(name === "status"){
+        var st = stepById(sel.id); if(!st || st.status === this.dataset.chip) return;
+        var snap = JSON.stringify(state);
+        setStatus(st, this.dataset.chip); commit();
+        offerUndo("「" + st.title + "」を「" + this.textContent + "」にしました", snap);
+      }else{
+        var all = document.querySelectorAll('.chip[data-chipname="form"]');
+        for(var j=0;j<all.length;j++) all[j].classList.remove("active");
+        this.classList.add("active");
+      }
+    });
+  }
+}
+
+/* ---------- チャートのクリック ---------- */
+function openFrom(elm){
+  var v = elm.dataset.open.split(":");
+  taskDraft = "";   /* 別の小目標を開いたら、打ちかけのタスク名は持ち越さない */
+  if(v[0]==="add"){
+    sel = {kind:"step", id:null, peak:v[1]}; panelMode = "new";
+    quickAdd = ""; qaDraft = "";
+  }else{
+    sel = {kind:v[0], id:v[1]}; panelMode = "view";
+  }
+  render();   /* 図とカードの両方で、選んだところに枠が付く */
+  $("panel").scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+/* 開かずにその場で済ませる操作（できた・達成・畳む・一覧・その場で追加）。
+   処理したら true を返し、下の「開く」には進まない */
+function onAction(e){
+  if(!e.target.closest) return false;
+  var b;
+  if(b = e.target.closest("[data-cycle]")){ cycleStatus(b.dataset.cycle, false); return true; }
+  if(b = e.target.closest("[data-done]")){ markDone(b.dataset.done); return true; }
+  if(b = e.target.closest("[data-peakdone]")){ achievePeak(b.dataset.peakdone); return true; }
+  if(b = e.target.closest("[data-fold]")){
+    expanded[b.dataset.fold] = !expanded[b.dataset.fold]; render(); return true;
+  }
+  if(b = e.target.closest("[data-tally]")){
+    tallyOpen = tallyOpen === b.dataset.tally ? "" : b.dataset.tally; render(); return true;
+  }
+  if(b = e.target.closest("[data-qa]")){
+    quickAdd = b.dataset.qa; qaDraft = ""; render(); focusQa(); return true;
+  }
+  if(e.target.closest(".qaok")){ submitQa(); return true; }
+  if(e.target.closest(".qacancel")){ quickAdd = ""; qaDraft = ""; render(); return true; }
+  return false;
+}
+function markDone(id){
+  var st = stepById(id); if(!st || st.status === "done") return;
+  var snap = JSON.stringify(state);
+  setStatus(st, "done"); commit();
+  offerUndo("「" + st.title + "」をできたにしました", snap);
+}
+function achievePeak(id){
+  var pk = peakById(id); if(!pk || pk.done) return;
+  var snap = JSON.stringify(state);
+  pk.done = true; commit();
+  offerUndo("山" + peakNo(id) + "「" + pk.title + "」を達成にしました", snap);
+}
+function focusQa(){
+  var i = document.querySelector(".qainput");
+  if(i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}
+function submitQa(){
+  var i = document.querySelector(".qainput");
+  var name = (i ? i.value : "").trim();
+  if(!name){ toast("名前を入れてください", true); focusQa(); return; }
+  if(!peakById(quickAdd)){ quickAdd = ""; render(); return; }
+  var snap = JSON.stringify(state);
+  state.steps.push({ id:newId("s"), peak:quickAdd, title:name, owner:"", due:"",
+                     status:"todo", detail:"" });
+  qaDraft = "";
+  commit();
+  focusQa();   /* 続けて足せるように入力欄を開いたままにする */
+  offerUndo("「" + name + "」を追加しました", snap);
+}
+
+/* 取り消す。操作の直前の state を丸ごと控えておき、押されたら戻す。
+   控えるのは直前の1回分だけ（数秒で消える） */
+var undoSnap = null, undoTimer = null;
+function offerUndo(msg, snap){
+  undoSnap = snap;
+  var u = $("undo");
+  u.innerHTML = '<span class="umsg">' + esc(msg) + '</span>'
+    + '<button type="button" id="undoBtn">取り消す</button>';
+  u.className = "undobar noprint show";
+  $("undoBtn").addEventListener("click", undoLast);
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(hideUndo, 7000);
+}
+function hideUndo(){
+  clearTimeout(undoTimer);
+  undoSnap = null;
+  var u = $("undo");
+  u.className = "undobar noprint";
+  u.innerHTML = "";
+}
+function undoLast(){
+  if(!undoSnap) return;
+  state = JSON.parse(undoSnap);
+  /* 戻した結果、選んでいた項目が消えていたら選択を解く
+     （解かないと、無い項目のパネルが空の入力欄として出る） */
+  if(sel && sel.id && ((sel.kind==="step" && !stepById(sel.id)) ||
+                       (sel.kind==="peak" && !peakById(sel.id)))) sel = null;
+  panelMode = "view";
+  if(quickAdd && !peakById(quickAdd)) quickAdd = "";
+  hideUndo();
+  commit();
+  toast("元に戻しました");
+}
+
+function wireOpen(id){
+  var host = $(id);
+  host.addEventListener("click", function(e){
+    if(onAction(e)) return;
+    var t = e.target.closest ? e.target.closest("[data-open]") : null;
+    if(t) openFrom(t);
+  });
+  host.addEventListener("keydown", function(e){
+    /* 追加の入力欄：Enterで追加、Escでやめる */
+    if(e.target.classList && e.target.classList.contains("qainput")){
+      /* 日本語入力の変換確定のEnterでは追加しない（Safariは isComposing を立てず 229 を返す） */
+      if(e.key === "Enter" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); submitQa(); }
+      else if(e.key === "Escape"){ quickAdd = ""; qaDraft = ""; render(); }
+      return;
+    }
+    if(e.key!=="Enter" && e.key!==" ") return;
+    var cy = e.target.closest ? e.target.closest("[data-cycle]") : null;
+    if(cy){ e.preventDefault(); cycleStatus(cy.dataset.cycle, true); return; }
+    var t = e.target.closest ? e.target.closest("[data-open]") : null;
+    if(t){ e.preventDefault(); openFrom(t); }
+  });
+  host.addEventListener("input", function(e){
+    if(e.target.classList && e.target.classList.contains("qainput")) qaDraft = e.target.value;
+  });
+}
+/* 印刷の版組み中は再描画しない。印刷時にブラウザが紙の幅でメディア判定を
+   発火させ、その途中で render() がDOMを描き直すと、版組みが壊れて
+   チェックリストが紙から丸ごと消える（PDF実物で確認した実害） */
+var printing = false;
+window.addEventListener("beforeprint", function(){ printing = true; });
+window.addEventListener("afterprint", function(){ printing = false; render(); });
+function onNarrowChange(){ if(!printing) render(); }
+if(narrowMQ.addEventListener){ narrowMQ.addEventListener("change", onNarrowChange); }
+else if(narrowMQ.addListener){ narrowMQ.addListener(onNarrowChange); }
+wireOpen("chart");
+wireOpen("cards");
+wireOpen("nextbar");
+wireOpen("now");
+$("ownerbar").addEventListener("click", function(e){
+  var b = e.target.closest ? e.target.closest("[data-owner]") : null;
+  if(!b) return;
+  ownerFilter = b.dataset.owner || "";
+  saveOwnerFilter(ownerFilter);   /* 次に開いたときも同じしぼり込みで始まる（この端末だけ） */
+  render();
+});
+
+/* ---------- 保存（このページ自身を publish しなおす） ---------- */
+var saveTimer = null, saving = false, dirty = false;
+function commit(){
+  state.updated = today();
+  render();
+  dirty = true;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flush, 600);
+}
+function buildDoc(){
+  if(!DATA_EL || !BODY_PARTS.length) return null;
+  var json = JSON.stringify(state, null, 1).replace(/</g, "\\u003c");
+  var body = "";
+  for(var i = 0; i < BODY_PARTS.length; i++){
+    body += (BODY_PARTS[i] === null
+      ? '<script data-app id="rm-data" type="application/json">\n' + json + "\n<\/script>"
+      : BODY_PARTS[i]) + "\n";
+  }
+  return '<!doctype html>\n<html lang="ja"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    + "<title>" + esc(state.title || "登頂ロードマップ") + "<\/title>\n" + HEAD_HTML
+    + "</head><body>\n" + body + "</body></html>";
+}
+function flush(){
+  if(saving || !dirty) return;
+  if(LOCAL){ saveLocal(); return; }
+  if(!artifactApi){
+    dirty = false;
+    toast("この画面では保存できません（変更はこの画面かぎりです）", true);
+    return;
+  }
+  var doc = buildDoc();
+  if(!doc){ toast("保存の準備に失敗しました。ページを開きなおしてください", true); return; }
+  saving = true; dirty = false;
+  toast("保存しています…");
+  artifactApi.publish(doc).then(function(){
+    saving = false; canSave = true;
+    toast("保存しました");
+    if(dirty) setTimeout(flush, 200);
+  }).catch(function(err){
+    saving = false;
+    var code = (err && err.code) || "";
+    if(code === "conflict"){
+      toast("ほかの人が先に保存しました。新しい内容を読み込みます");
+    }else if(code === "not_granted" || code === "not_writer" || code === "not_declared"){
+      canSave = false;
+      var bn = $("banner");
+      bn.textContent = "このページは見るだけの状態です。変更はほかの人には保存されません。";
+      bn.className = "banner show";
+      toast("このページは見るだけの状態です", true);
+    }else{
+      dirty = true;
+      toast("保存できませんでした。もう一度おためしください", true);
+    }
+  });
+}
+/* 公開版の保存。この端末のブラウザに置く */
+function saveLocal(){
+  dirty = false;
+  try{
+    window.localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    toast("この端末に保存しました");
+  }catch(e){
+    localBroken = true; showLocalBanner();
+    toast("この端末に保存できませんでした。「ファイルに書き出す」で控えを取ってください", true);
+  }
+}
+function showLocalBanner(){
+  var bn = $("banner");
+  bn.textContent = "このブラウザには保存できない設定です（プライベート表示など）。閉じる前に「ファイルに書き出す」で控えを取ってください。";
+  bn.className = "banner show";
+}
+/* 書き出す。ファイル名は「題名_日付.json」 */
+function safeName(s){ return String(s || "登頂ロードマップ").replace(/[\\/:*?"<>|]/g, "_").slice(0, 60); }
+function downloadBlob(name, text, type){
+  var url = URL.createObjectURL(new Blob([text], { type:type }));
+  var a = document.createElement("a");
+  a.href = url; a.download = name; a.style.display = "none";
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1500);
+}
+function exportFile(){
+  var name = safeName(state.title) + "_" + today() + ".json";
+  downloadBlob(name, JSON.stringify(state, null, 1), "application/json");
+  toast("「" + name + "」を書き出しました");
+}
+/* 読み込む。いまの中身は置きかわるが、7秒の「取り消す」で戻せる */
+function importFile(file){
+  if(!file) return;
+  if(file.size > 3000000){ toast("ファイルが大きすぎます（このページで書き出したファイルを選んでください）", true); return; }
+  var fr = new FileReader();
+  fr.onload = function(){
+    var s = null;
+    try{ s = normState(JSON.parse(String(fr.result || ""))); }catch(e){ s = null; }
+    if(!s){ toast("このファイルは読み込めません。このページの「ファイルに書き出す」で作ったファイルを選んでください", true); return; }
+    var snap = JSON.stringify(state);
+    state = s; sel = null; panelMode = "view"; quickAdd = ""; qaDraft = ""; taskDraft = ""; tallyOpen = "";
+    if(ownerFilter && allOwners().indexOf(ownerFilter) < 0){ ownerFilter = ""; saveOwnerFilter(""); }
+    commit();
+    offerUndo("「" + file.name + "」を読み込みました", snap);
+  };
+  fr.onerror = function(){ toast("ファイルを読めませんでした。もう一度選んでください", true); };
+  fr.readAsText(file);
+}
+/* 白紙の形。山は3つ（決めごと「大きい目標は3つまで」）、小目標はまだ無い */
+function blankState(){
+  var pk = [];
+  for(var i=1;i<=3;i++) pk.push({ id:"p"+i, title:"中間目標 "+i, amount:"", due:"", detail:"", done:false });
+  return { v:1, seq:3, title:"わたしのロードマップ", subtitle:"", updated:today(),
+           start:{ label:"いま", sub:"" }, note:"",
+           goal:{ title:"ゴール", sub:"", detail:"", done:false }, peaks:pk, steps:[] };
+}
+var toastTimer = null;
+function toast(msg, isErr){
+  var t = $("toast");
+  t.textContent = msg;
+  t.className = "saving show" + (isErr ? " err" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.className = "saving" + (isErr ? " err" : ""); }, isErr ? 5200 : 2000);
+}
+
+/* ---------- 起動 ---------- */
+$("editBtn").addEventListener("click", function(){
+  editMode = !editMode;
+  if(!editMode && panelMode!=="view"){ panelMode="view"; if(sel && sel.id==null) sel=null; }
+  render();
+});
+/* 印刷。この画面は allow-modals のないサンドボックスの中で動くため、
+   window.print() が黙って無視されることがある（実測で確認済み）。
+   beforeprint が出たかどうかで判定し、無視されたら印刷用ファイルの保存に切り替える。 */
+var bpFired = false, printBlocked = false;
+window.addEventListener("beforeprint", function(){ bpFired = true; });
+function printDoc(){
+  var css = ""
+    /* 紙は白なのでライトテーマの値をそのまま置く（本体のトークンを変えたらここも合わせる） */
+    + ':root{--paper:#fff;--card:#fff;--ink:#22303A;--sub:#56676F;--line:#D5DED8;'
+    + '--ridge:#33526A;--ridge-soft:rgba(51,82,106,.10);--ridge-far:rgba(51,82,106,.05);'
+    + '--accent:#276B4E;--accent-soft:rgba(39,107,78,.13);--on-accent:#fff;'
+    + '--st-done:#1F5FA8;--st-soon:#E0AC1E;--st-urgent:#AF3A2C;--st-todo:#8C9AA2;'
+    + '--on-done:#fff;--on-soon:#22303A;--on-urgent:#fff;--on-todo:#56676F}'
+    + '*{box-sizing:border-box}html,body{margin:0;padding:0}'
+    + 'body{background:#fff;color:var(--ink);font-family:"Zen Kaku Gothic New",'
+    + '"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:14px;line-height:1.6}'
+    + '.sheet{padding:14px 18px}'
+    + '.bar{display:flex;gap:12px;align-items:center;justify-content:space-between;'
+    + 'background:#F2F5F1;border-bottom:1px solid var(--line);padding:10px 18px}'
+    + '.bar p{margin:0;font-size:13px;color:var(--sub)}'
+    + '.bar button{font:inherit;font-size:14px;cursor:pointer;border:1px solid var(--ridge);'
+    + 'background:var(--ridge);color:#fff;border-radius:8px;padding:8px 18px}'
+    + 'h1{font-family:"Zen Old Mincho",serif;font-weight:900;font-size:20px;margin:0;letter-spacing:.03em}'
+    + '.sub{color:var(--sub);font-size:11px;margin:1px 0 4px}'
+    + 'svg{display:block;width:100%;height:auto}'
+    + 'svg text{font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",sans-serif;'
+    + 'fill:var(--ink);pointer-events:none}'
+    + '.halo{paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}'
+    + '.ground{stroke:var(--line);stroke-width:2}'
+    + '.level{stroke:var(--line);stroke-width:1;stroke-dasharray:1 5;stroke-linecap:round}'
+    + '.route{fill:none;stroke:var(--ridge);stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round}'
+    + '.route-next{stroke-width:3;stroke-dasharray:9 8;opacity:.55}'
+    + '.route-fill{fill:var(--ridge-soft);stroke:none}'
+    + '.arrow{stroke:var(--accent);stroke-width:4;stroke-linecap:round;fill:none}'
+    + '.arrow-head{fill:var(--accent)}'
+    + '.hit{fill:transparent}'   /* 当たり判定用の円。指定しないと黒く塗られてしまう */
+    + '.stepc{stroke-width:2.5}.stepc.todo{fill:#fff;stroke:var(--st-todo)}'
+    + '.stepc.soon{fill:var(--st-soon);stroke:var(--st-soon)}'
+    + '.stepc.urgent{fill:var(--st-urgent);stroke:var(--st-urgent)}'
+    + '.stepc.done{fill:var(--st-done);stroke:var(--st-done)}'
+    + '.stepnum{font-size:13px;font-weight:700}.stepnum.done{fill:var(--on-done)}'
+    + '.stepnum.soon{fill:var(--on-soon)}.stepnum.urgent{fill:var(--on-urgent)}'
+    + '.stepnum.todo{fill:var(--sub)}'
+    /* 山ごとのカード（本体CSSに足したクラスは、ここにも足すこと） */
+    /* カードは縦積み。格子はページの境目で中身が割れる（本体の@media printと同じ理由） */
+    + '.cards{display:block;margin-top:10px}'
+    + '.card{border:1px solid var(--line);border-radius:10px;padding:8px 10px;'
+    + 'break-inside:avoid;page-break-inside:avoid;margin-top:9px}'
+    + '.card>header{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 7px}'
+    + '.card h3{font-family:"Zen Old Mincho",serif;font-weight:600;font-size:13.5px;margin:0;line-height:1.4;flex:1 1 auto}'
+    + '.card .amt{font-size:11px;font-weight:700;color:var(--ridge);background:var(--ridge-soft);'
+    + 'border-radius:999px;padding:1px 8px;white-space:nowrap}'
+    + '.card .cdue{font-size:11.5px;color:var(--sub);white-space:nowrap}'
+    + '.pknum{flex:none;display:inline-grid;place-items:center;width:20px;height:20px;'
+    + 'border-radius:50%;background:var(--ridge);color:#fff;font-size:11px;font-weight:700}'
+    + '.pknum.done{background:var(--accent);color:var(--on-accent)}'
+    + '.donechip{font-size:10.5px;font-weight:700;color:var(--on-accent);background:var(--accent);'
+    + 'border-radius:999px;padding:1px 7px;white-space:nowrap}'
+    + '.cprog{display:flex;align-items:center;gap:7px;margin-top:7px}'
+    + '.cprogbar{flex:1 1 auto;height:4px;border-radius:2px;background:var(--line);overflow:hidden}'
+    + '.cprogbar>i{display:block;height:100%;background:var(--st-done);border-radius:2px}'
+    + '.cprognum{font-size:10px;color:var(--sub);white-space:nowrap}'
+    + '.card ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:1px}'
+    + '.card li{display:flex;gap:7px;align-items:flex-start;padding:3px 0}'
+    + '.rowmain{display:flex;gap:7px;align-items:flex-start;min-width:0}'
+    + '.card li.empty{color:var(--sub);font-size:11px}'
+    + '.badge{flex:none;width:19px;height:19px;border-radius:50%;font-size:11px;font-weight:700;'
+    + 'display:grid;place-items:center;border:2px solid;box-sizing:border-box}'
+    + '.badge.todo{border-color:var(--st-todo);color:var(--sub);background:#fff}'
+    + '.badge.soon{border-color:var(--st-soon);background:var(--st-soon);color:var(--on-soon)}'
+    + '.badge.urgent{border-color:var(--st-urgent);background:var(--st-urgent);color:var(--on-urgent)}'
+    + '.badge.done{border-color:var(--st-done);background:var(--st-done);color:var(--on-done)}'
+    + '.rbody{display:flex;flex-direction:column;gap:0;min-width:0}'
+    + '.rt{font-size:11.5px;line-height:1.4}'
+    + '.row.done .rt{text-decoration:line-through;color:var(--sub)}'
+    + '.rm{font-size:10px;color:var(--sub)}'
+    /* 期日の札。紙では地の色が刷られないことがあるので、枠と文字色でも読めるようにする */
+    + '.duepill{display:inline-block;font-size:10px;border-radius:999px;padding:0 6px;'
+    + 'white-space:nowrap;color:var(--sub);border:1px solid var(--line)}'
+    + '.duepill.over,.duepill.today{color:var(--st-urgent);border-color:var(--st-urgent);font-weight:700}'
+    + '.duepill.near{color:var(--st-urgent);border-color:var(--st-urgent)}'
+    + '.row.overdue .rowmain{border-left:3px solid var(--st-urgent);padding-left:5px}'
+    /* 小目標の中のタスク（2枚目だけに載せる）。□はペンで塗る */
+    + '.card li.ptaskrow{display:block;padding:0 0 4px 26px}'
+    + '.ptasks{list-style:none;margin:0;padding:0}'
+    + '.ptasks li{display:flex;gap:6px;align-items:flex-start;padding:1px 0;font-size:10px;line-height:1.45}'
+    + '.pbox{flex:none;width:10px;height:10px;border:1.2px solid var(--ink);border-radius:2px;'
+    + 'font-size:8px;line-height:8px;text-align:center;margin-top:2.5px}'
+    + '.ptasks li.pdone{color:var(--sub);text-decoration:line-through}'
+    /* 数値の目標（本体にクラスを足したら、この印刷用CSSにも足すのが決めごと） */
+    + '.kpifill{fill:var(--accent);fill-opacity:.17;stroke:none}'
+    + '.kpiline{stroke:var(--accent);stroke-width:2.2;stroke-dasharray:6 4;opacity:.9}'
+    + '.goal-kpi{font-size:12px;font-weight:700;fill:var(--accent)}'
+    + '.kprog{display:flex;align-items:center;gap:7px;margin-top:6px;flex-wrap:wrap}'
+    + '.kplbl{font-size:10px;color:var(--sub);white-space:nowrap}'
+    + '.kpbar{flex:1 1 70px;min-width:54px;height:6px;border-radius:3px;'
+    + 'background:var(--line);overflow:hidden}'
+    + '.kpbar>i{display:block;height:100%;background:var(--accent);border-radius:3px}'
+    + '.kpnum{font-size:10.5px;font-weight:700;white-space:nowrap}'
+    + '.kppct{font-size:10.5px;font-weight:700;color:var(--accent);white-space:nowrap}'
+    /* 紙では地の色が刷られないことがあるので、枠と文字色でも読めるようにする */
+    + '.pkpi{display:inline-block;font-size:11px;font-weight:700;color:var(--accent);'
+    + 'border:1.5px solid var(--accent);border-radius:999px;padding:0 7px;white-space:nowrap}'
+    + '.peak-title{font-family:"Zen Old Mincho",serif;font-size:16px;font-weight:600}'
+    + '.peak-amt{font-size:12px;font-weight:700;fill:var(--ridge)}'
+    + '.peak-amt-bg{fill:var(--ridge-soft)}.peak-due{font-size:12px;fill:var(--sub)}'
+    + '.flagpole{stroke:var(--ridge);stroke-width:2.5}.flag{fill:var(--ridge)}'
+    + '.peak-done .flag{fill:var(--accent)}.peak-done .flagpole{stroke:var(--accent)}'
+    + '.goal-ring{fill:var(--accent-soft);stroke:var(--accent);stroke-width:3}'
+    + '.goal-ring2{fill:none;stroke:var(--accent);stroke-width:1.5}'
+    + '.goal-title{font-family:"Zen Old Mincho",serif;font-size:18px;font-weight:600}'
+    + '.goal-sub{font-size:12px;fill:var(--sub)}.noprint{display:none}'
+    /* 壁に貼る1枚目＝図＋チェックリスト。A4横を横に分けて使う（本人指示 2026-09-21）。
+       詳しいカードは2枚目に回す */
+    + '.fig{min-width:0}.fig svg{width:100%;height:auto;max-height:97mm}'
+    + '.plegend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;'
+    + 'font-size:10.5px;color:var(--sub)}'
+    + '.plegend b{display:inline-block;width:9px;height:9px;border-radius:50%;'
+    + 'margin-right:4px;vertical-align:-1px}'
+    /* チェックリストは図の下いっぱい。3段に割って高さを抑える */
+    + '.list{min-width:0;font-size:11px;margin-top:6px;columns:3;column-gap:9mm}'
+    /* 余った下の帯は書き込み欄にする（本体の @media print と同じ作り） */
+    + '.writein{margin-top:10px;break-inside:avoid;page-break-inside:avoid}'
+    + '.wihd{font-size:12px;font-weight:700;display:flex;gap:14px;align-items:baseline}'
+    + '.wiweek{font-weight:400;color:var(--sub);font-size:11px}'
+    + '.wiline{border-bottom:1px solid var(--line);height:8mm}'
+    + '.psrc{margin:6px 0 0;font-size:9px;color:var(--sub);line-height:1.45}'
+    + '.list .psec{break-inside:avoid;page-break-inside:avoid}'
+    + '.list h2{font-size:12.5px;margin:0 0 6px;column-span:all}'
+    + '.list h3{font-size:12px;margin:0 0 3px}.list .psec{margin-bottom:8px}'
+    + '.pwho{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;'
+    + 'border:1.5px solid var(--ink);border-radius:999px;padding:0 8px}'
+    + '.cardpage{break-before:page;page-break-before:always;padding:14px 18px}'
+    + '.cardpage h2{font-size:14px;margin:0 0 6px}'
+    + '.list ul{margin:0;padding-left:0;list-style:none}.list li{margin:4px 0}'
+    + '.list .mark{display:inline-block;width:13px;height:13px;border:1.5px solid var(--ink);'
+    + 'border-radius:50%;margin-right:7px;vertical-align:-2px}.list .pmeta{color:var(--sub)}'
+    + '@page{size:A4 landscape;margin:9mm}'
+    + '@media print{.bar{display:none}.sheet{padding:0}.cardpage{padding:0}}';
+  var head = '<meta charset="utf-8"><title>' + esc(state.title||"登頂ロードマップ") + '（印刷用）</title>'
+    + '<link rel="preconnect" href="https://fonts.googleapis.com">'
+    + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;900'
+    + '&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">'
+    + "<style>" + css + "<\/style>";
+  var body = '<div class="bar noscreenhide"><p>このページを印刷すると、そのまま貼れる工程表になります'
+    + '（PDFで保存もできます）。</p><button type="button" onclick="window.print()">印刷する</button></div>'
+    + '<div class="sheet"><h1>' + esc(state.title||"登頂ロードマップ")
+    + (ownerFilter ? '<span class="pwho">' + esc(ownerFilter) + ' の分</span>' : '') + '</h1>'
+    + '<div class="sub">' + esc(state.subtitle||"")
+    + (state.updated ? "　（最終更新 " + esc(state.updated) + "）" : "") + '</div>'
+    + '<div class="fig">' + chartMarkup(true, false)
+    + '<div class="plegend">'
+    + '<span><b style="background:var(--st-done)"></b>できた</span>'
+    + '<span><b style="background:var(--st-soon)"></b>早めにやる</span>'
+    + '<span><b style="background:var(--st-urgent)"></b>急ぎ</span>'
+    + '<span><b style="background:var(--st-todo)"></b>これから</span>'
+    + '</div></div>'
+    + '<div class="list">' + $("printlist").innerHTML + '</div>'
+    + '<div class="writein"><div class="wihd">今週やること（ペンで書く）'
+    + '<span class="wiweek">週：　　／　　　〜　　／　　</span></div>'
+    + '<div class="wiline"></div><div class="wiline"></div></div>'
+    + '<p class="psrc">' + esc(($("srcnote").textContent || "").trim()) + '</p>'
+    + '</div>'
+    + '<div class="cardpage"><h2>くわしい中身（担当・期日・メモ）</h2>'
+    + cardsMarkup(false, true) + '</div>'
+    + "<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},600)})<\/script>";
+  return '<!doctype html>\n<html lang="ja"><head>' + head + '</head><body>' + body + '</body></html>';
+}
+function savePrintFile(){
+  if(!downloadsApi && LOCAL){
+    downloadBlob(safeName(state.title) + "_印刷用.html", printDoc(), "text/html");
+    toast("印刷用ファイルを保存しました。そのファイルを開くと印刷できます");
+    return;
+  }
+  if(!downloadsApi){
+    printBlocked = true;
+    $("printBtn").textContent = "印刷用ファイルを保存";
+    showPrintHelp();
+    return;
+  }
+  toast("印刷用ファイルを用意しています…");
+  downloadsApi.save({
+    filename: (state.title || "登頂ロードマップ") + "_印刷用.html",
+    data: printDoc()
+  }).then(function(){
+    toast("保存しました。そのファイルを開くと印刷できます");
+  }).catch(function(err){
+    var code = (err && err.code) || "";
+    if(code === "declined"){ toast("保存をやめました"); }
+    else if(code === "rate_limited"){ toast("少し待ってから、もう一度押してください", true); }
+    else { showPrintHelp(); }
+  });
+}
+function showPrintHelp(){
+  sel = null; panelMode = "view";
+  $("panel").className = "panel";   /* 何も選んでいないと欄ごと隠れているので出す */
+  $("panel").innerHTML =
+    '<h2>この画面から直接は印刷できません</h2>'
+    + '<p class="hint">Artifactの画面は安全のため印刷が止められています（ボタンを押しても何も起きないのはそのためです）。'
+    + '紙に貼るときは、次のどちらかでお願いします。</p>'
+    + '<div class="form" style="gap:6px;margin-top:8px">'
+    + '<p class="hint">1. このページを別のタブで開いてから、キーボードの Ctrl+P（Macは ⌘+P）を押す</p>'
+    + '<p class="hint">2. 下のボタンで印刷用ファイルを保存し、そのファイルを開いて印刷する</p></div>'
+    + '<div class="panelbtns noprint"><button type="button" class="primary" id="dlBtn">印刷用ファイルを保存する</button>'
+    + '<button type="button" id="closeBtn">とじる</button></div>';
+  var d = $("dlBtn");
+  if(d) d.addEventListener("click", function(){
+    if(downloadsApi){ savePrintFile(); }
+    else { toast("この画面ではファイルを保存できません。別のタブで開いて Ctrl+P を押してください", true); }
+  });
+  var c = $("closeBtn");
+  if(c) c.addEventListener("click", function(){ renderPanel(); });
+  $("panel").scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+$("printBtn").addEventListener("click", function(){
+  if(printBlocked){ savePrintFile(); return; }
+  bpFired = false;
+  try{ window.print(); }catch(e){}
+  setTimeout(function(){
+    if(bpFired) return;               /* ふつうに印刷できた */
+    printBlocked = true;
+    $("printBtn").textContent = "印刷用ファイルを保存";
+    savePrintFile();
+  }, 250);
+});
+$("addPeakBtn").addEventListener("click", function(){
+  sel = {kind:"peak", id:null}; panelMode = "new"; renderPanel();
+  $("panel").scrollIntoView({behavior:"smooth", block:"nearest"});
+});
+$("editGoalBtn").addEventListener("click", function(){
+  sel = {kind:"goal", id:"goal"}; panelMode = "edit"; renderPanel();
+  $("panel").scrollIntoView({behavior:"smooth", block:"nearest"});
+});
+
+/* 前にこの端末で選んだしぼり込みを戻す。黙って絞られていると
+   「項目が減った」と誤解されるので、戻したときだけ一度お知らせを出す */
+if(LOCAL){
+  $("exportBtn").hidden = false; $("importBtn").hidden = false;
+  $("localnote").hidden = false; $("blankBtn").hidden = false;
+  $("exportBtn").addEventListener("click", exportFile);
+  $("importBtn").addEventListener("click", function(){ $("importFile").click(); });
+  $("importFile").addEventListener("change", function(){
+    var f = this.files && this.files[0]; this.value = ""; importFile(f);
+  });
+  $("blankBtn").addEventListener("click", function(){
+    /* 消すものが大きいので2回押す（confirm は使わない） */
+    if(!this.dataset.armed){
+      this.dataset.armed = "1"; this.className = "armed";
+      this.textContent = "本当に白紙にする（いまの中身は消えます・もう一度押す）";
+      return;
+    }
+    delete this.dataset.armed; this.className = "warn"; this.textContent = "見本を消して白紙から始める";
+    var snap = JSON.stringify(state);
+    state = blankState(); sel = null; panelMode = "view"; quickAdd = ""; tallyOpen = "";
+    ownerFilter = ""; saveOwnerFilter("");
+    commit();
+    offerUndo("白紙にしました", snap);
+  });
+  if(localBroken) showLocalBanner();
+}
+var restoredOwner = restoreOwnerFilter();
+render();
+if(restoredOwner) toast("「" + restoredOwner + "」でしぼって表示しています（この端末だけ）");
+
+if(window.claude && window.claude.use){
+  window.claude.use("artifact").then(function(api){
+    artifactApi = api || null;
+  }).catch(function(){ artifactApi = null; });
+  window.claude.use("downloads").then(function(api){
+    downloadsApi = api || null;
+  }).catch(function(){ downloadsApi = null; });
+}
+})();
+</script>
+
+</body></html>
