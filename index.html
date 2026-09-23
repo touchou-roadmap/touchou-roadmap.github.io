@@ -477,7 +477,9 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
 .sheetbar{flex:none;display:flex;gap:10px;align-items:center;justify-content:space-between;
   padding:10px 14px;background:var(--card);border-bottom:1px solid var(--line);
   font-size:var(--t-cap);color:var(--sub);line-height:1.5}
-.sheetbar span{min-width:0}
+.sheetbar>span{min-width:0}
+.sheetbtns{flex:none;display:flex;gap:8px;align-items:center}
+.sheetbar button{min-height:40px;padding:0 13px;font-size:var(--t-cap)}
 .sheetframe{flex:1 1 auto;width:100%;border:0;background:#FFFFFF}
 .saving{position:fixed;left:50%;bottom:22px;transform:translate(-50%,80px);
   background:var(--ink);color:var(--paper);padding:10px 20px;border-radius:999px;
@@ -1672,7 +1674,13 @@ function chartMarkup(forPrint, narrow){
 
   /* ルートの点列。小目標の位置も頂点に入れて、
      「登った分」と「これから」を同じ線の上で塗り分けられるようにする */
-  var pts = [g.start], stepDraw = [], splitIdx = -1;
+  /* 点ごとに「もう登り終えたか」を控える。実線はこれが続いているところまで。
+     2026-09-23に本人の実機の写真で2つの間違いが分かった：
+       ・小目標が1つも無いと「全部できている」と見なして図がぜんぶ実線になっていた
+         （白紙で開いた公開版がこれ。何も達成していないのに山3つぶん実線だった）
+       ・頂上（山の達成）を見ていなかったので、達成していない山の頂上まで実線が伸びていた
+     いまは 小目標＝できた／頂上と谷＝その山を「達成」にした、で判定する */
+  var pts = [g.start], reached = [true], stepDraw = [], splitIdx = 0;
   var hereAt = null, hereN = {x:0, y:-1}, hereFlip = false;
   for(var i=0;i<g.n;i++){
     var pk0 = state.peaks[i], a0 = slopeAnchor(g,i), b0 = g.apexes[i];
@@ -1680,16 +1688,13 @@ function chartMarkup(forPrint, narrow){
     for(var j=0;j<m0;j++){
       var pt0 = onSlope(a0, b0, (j+1)/(m0+1));
       pts.push(pt0);
+      reached.push(list0[j].status === "done");
       /* 当たり判定は隣の丸との間隔の半分まで。広げすぎると判定が重なり、
          押した丸と違う小目標が開く（スマホの斜面は短いので実際に起きる） */
       var sw = Math.sqrt(Math.pow(b0.x-a0.x,2) + Math.pow(b0.y-a0.y,2)) / (m0+1);
       stepDraw.push({ st:list0[j], pt:pt0, no:j+1, peak:pk0,
                       hitR: Math.max(g.stepR + 1, Math.min(28, sw/2)) });
-      if(splitIdx < 0 && list0[j].status !== "done"){
-        /* 実線はひとつ前の点まで。この点（まだできていない小目標）へ向かう線は
-           まだ登っていないので点線にする。-1 にしていたころは、何も達成していなくても
-           「いま」から1つ目の丸までが実線で引かれていた（2026-09-23に実測で発覚） */
-        splitIdx = pts.length - 2;
+      if(!hereAt && list0[j].status !== "done"){
         hereAt = pt0;
         var sdx0 = b0.x-a0.x, sdy0 = b0.y-a0.y, sl0 = Math.sqrt(sdx0*sdx0+sdy0*sdy0) || 1;
         hereN = { x:sdy0/sl0, y:-sdx0/sl0 };   /* 斜面に垂直で左上を向く向き */
@@ -1697,11 +1702,18 @@ function chartMarkup(forPrint, narrow){
         hereFlip = (j === 0 && i > 0);
       }
     }
-    pts.push(b0);
-    if(i < g.n-1) pts.push(g.valleys[i]);
+    /* 頂上は「達成」にして初めて登りきったことにする。小目標がぜんぶできていても、
+       達成にするかどうかを決めるのは人（勧めるだけ、という他の機能と同じ考え方） */
+    pts.push(b0); reached.push(!!pk0.done);
+    if(i < g.n-1){ pts.push(g.valleys[i]); reached.push(!!pk0.done); }
   }
   pts.push(g.dip);
-  if(splitIdx < 0) splitIdx = pts.length - 1;   /* 全部できている＝ぜんぶ登った */
+  reached.push(g.n ? !!state.peaks[g.n-1].done : false);
+  /* 出発点から続けて登り終えたところまでが実線。1つでも途切れたらそこから先は点線 */
+  for(var i=1;i<reached.length;i++){
+    if(!reached[i]) break;
+    splitIdx = i;
+  }
 
   /* 山の胴体。ゴールの足元まで持ち上げてから右端で地面に落とす */
   var dArea = "M" + g.start.x + "," + GROUND;
@@ -2809,18 +2821,26 @@ function inAppBrowser(){
       || /FBAN|FBAV|FB_IAB|Instagram|MicroMessenger|KAKAOTALK|NAVER|Twitter/i.test(u);
 }
 var sheetEl = null;
-function showPrintSheet(){
+function showPrintSheet(inApp){
   if(sheetEl) return;
   sheetEl = document.createElement("div");
   sheetEl.className = "sheetview noprint";
+  /* アプリの中では紙に出せないので、そのことと逃げ道を帯に書く。
+     「保存」は出さない（LINEではファイルの保存も効かないと本人が実機で確認 2026-09-23） */
+  var msg = inApp
+    ? "アプリの中では紙に出せません。右下の「…」から「Safariで開く」を選ぶと印刷できます。"
+    : "印刷用の表示です。画面写真でも残せます。";
   sheetEl.innerHTML = '<div class="sheetbar">'
-    + '<span>印刷用の表示です。画面写真でも残せます。</span>'
-    + '<button type="button" id="sheetClose">とじる</button></div>'
+    + '<span>' + esc(msg) + '</span><span class="sheetbtns">'
+    + (inApp ? '<button type="button" id="sheetCopy">リンクをコピー</button>' : '')
+    + '<button type="button" id="sheetClose">とじる</button></span></div>'
     + '<iframe class="sheetframe" id="sheetFrame" title="印刷用の表示"></iframe>';
   document.body.appendChild(sheetEl);
   /* srcdoc に丸ごと入れる。別の入れ物なので、このページのCSSと混ざらない */
   $("sheetFrame").setAttribute("srcdoc", printDoc(true));
   $("sheetClose").addEventListener("click", hidePrintSheet);
+  var c = $("sheetCopy");
+  if(c) c.addEventListener("click", copyPageUrl);
 }
 function hidePrintSheet(){
   if(!sheetEl) return;
@@ -2844,14 +2864,15 @@ function showPrintHelpLocal(){
   sel = null; panelMode = "view";
   $("panel").className = "panel";
   var why = inAppBrowser()
-    ? "LINEなどアプリの中で開いたページは、印刷とファイルの保存ができない作りになっています。"
+    ? "アプリの中で開いたページは、印刷もファイルの保存もできない作りになっています。"
     : "このブラウザでは印刷が止められています。";
   $("panel").innerHTML =
     '<h2>この画面からは直接印刷できません</h2>'
     + '<p class="hint">' + why + '次のどれかでお願いします。</p>'
     + '<div class="panelbtns noprint">'
     + '<button type="button" class="primary" id="viewSheetBtn">印刷用の表示を出す</button>'
-    + '<button type="button" id="dlBtn">印刷用ファイルを保存</button>'
+    /* アプリの中ではファイルの保存も効かない。押しても何も起きないボタンは出さない */
+    + (inAppBrowser() ? '' : '<button type="button" id="dlBtn">印刷用ファイルを保存</button>')
     + '<button type="button" id="copyUrlBtn">このページのリンクをコピー</button>'
     + '<button type="button" id="closeBtn">とじる</button></div>'
     + '<div class="form" style="gap:6px;margin-top:10px">'
@@ -2861,7 +2882,7 @@ function showPrintHelpLocal(){
     + '<p class="hint"><b>中身を見たいだけのとき</b>：「印刷用の表示を出す」なら、'
     + 'この画面のまま紙と同じ並びで確かめられます。</p></div>';
   var b;
-  if(b = $("viewSheetBtn")) b.addEventListener("click", showPrintSheet);
+  if(b = $("viewSheetBtn")) b.addEventListener("click", function(){ showPrintSheet(inAppBrowser()); });
   if(b = $("dlBtn")) b.addEventListener("click", savePrintFile);
   if(b = $("copyUrlBtn")) b.addEventListener("click", copyPageUrl);
   if(b = $("closeBtn")) b.addEventListener("click", function(){ renderPanel(); });
@@ -2895,9 +2916,10 @@ function printFallback(){
 }
 $("printBtn").addEventListener("click", function(){
   if(printBlocked){ printFallback(); return; }
-  /* アプリの中のブラウザは印刷に対応していない。試しても黙って何も起きず
-     「壊れたボタン」に見えるので、最初から案内を出す */
-  if(LOCAL && inAppBrowser()){ printFallback(); return; }
+  /* アプリの中のブラウザは印刷にもファイルの保存にも対応していない。
+     案内を挟まずに、そのまま画面の中へ紙の中身を出す（押して何かが起きる形にする）。
+     本人の実機で「印刷用ファイルを保存も効かない」と確認したため（2026-09-23） */
+  if(LOCAL && inAppBrowser()){ showPrintSheet(true); return; }
   bpFired = false;
   try{ window.print(); }catch(e){}
   setTimeout(function(){
