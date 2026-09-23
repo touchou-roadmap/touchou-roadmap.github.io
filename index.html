@@ -914,8 +914,10 @@ function kpiSetMarkup(o){
   var k = (o && o.kpi) || {}, has = !!kpiOf(o);
   /* 箱の上の見出しは消えない。打ち始めると消える案内（placeholder）だけに頼ると、
      どの箱に何を入れるのか分からなくなる（本人指摘 2026-09-21）。
-     「いま」は「いまは何年」と読めたので「いまの数」「目標の数」と言い切る */
-  return '<div class="kpiset noprint"><div class="kpihd">数値の目標</div><div class="kpigrid">'
+     「いま」は「いまは何年」と読めたので「いまの数」「目標の数」と言い切る。
+     見出しに「入れなくてもかまいません」を入れてある。数字で測らない目標もあるため
+     （本人指摘 2026-09-23「ゴールが数値じゃない場合もある」）。空なら欄は出るが図・紙には何も出ない */
+  return '<div class="kpiset noprint"><div class="kpihd">数字で進みを見る（入れなくてもかまいません）</div><div class="kpigrid">'
     + '<label class="kpif kpif-l"><span>何の数字か</span>'
     + '<input id="q_kpilabel" value="' + esc(k.label || "") + '" placeholder="売上"></label>'
     + '<label class="kpif kpif-n"><span>いまの数</span>'
@@ -928,7 +930,7 @@ function kpiSetMarkup(o){
     + '<input id="q_kpiunit" value="' + esc(k.unit || "") + '" placeholder="万円"></label>'
     + '</div><p class="kpiprev" id="q_kpiprev"></p><div class="kpibtns">'
     + '<button type="button" class="primary" id="q_kpisave">これで決定</button>'
-    + (has ? '<button type="button" id="q_kpiclear">数値をやめる</button>' : '')
+    + (has ? '<button type="button" id="q_kpiclear">数字を使わない</button>' : '')
     + '</div></div>';
 }
 /* いま入力されている中身から「こうなります」の1行を作る。
@@ -940,7 +942,7 @@ function kpiPreview(){
   var label = (($("q_kpilabel") || {}).value || "").trim();
   if(tgt === null || tgt <= 0){
     p.className = "kpiprev none";
-    p.textContent = "「目標の数」を入れると、ここに達成率が出ます。";
+    p.textContent = "数字で測らない目標なら、ここは空のままでかまいません。「目標の数」を入れると達成率が出ます。";
     return;
   }
   if(cur === null || cur < 0) cur = 0;
@@ -1979,7 +1981,7 @@ function renderPanel(){
     var pk = panelMode==="new" ? null : peakById(sel.id);
     if(panelMode==="view" && pk){
       h += '<h2>⛰ '+esc(pk.title)+'</h2>';
-      h += '<div class="meta">'+(pk.amount? '金額: <b>'+esc(pk.amount)+'</b>':'')
+      h += '<div class="meta">'+(pk.amount? '札の言葉: <b>'+esc(pk.amount)+'</b>':'')
         + (pk.due? '　｜　時期: '+esc(pk.due):'')
         + '　｜　小目標 '+stepsOf(pk.id).length+'個</div>';
       if(pk.detail) h += '<div class="detail">'+esc(pk.detail)+'</div>';
@@ -2001,7 +2003,7 @@ function renderPanel(){
       h += '<div class="form">'
         + '<div><label>中間目標の名前（頂上に出ます）</label><input id="f_title" value="'+esc(v.title)+'"></div>'
         + '<div class="frow">'
-        + '<div><label>金額（頂上の札に出ます）</label><input id="f_amount" value="'+esc(v.amount)+'" placeholder="300万円 など"></div>'
+        + '<div><label>頂上の札に出す言葉（金額でなくてもよい）</label><input id="f_amount" value="'+esc(v.amount)+'" placeholder="300万円 / お店1軒 など"></div>'
         + '<div><label>時期</label><input id="f_due" value="'+esc(v.due)+'" placeholder="今年中 など"></div>'
         + '</div>'
         + '<div><label>詳しいメモ</label><textarea id="f_detail">'+esc(v.detail)+'</textarea></div>'
@@ -2088,13 +2090,13 @@ function bindPanel(){
     setKpi(o, $("q_kpilabel").value, $("q_kpicur").value, tgt, $("q_kpiunit").value);
     commit();
     var k = kpiOf(o);
-    offerUndo(k ? "数値の目標を " + kpiText(k) + "（" + k.pct + "%）にしました" : "数値の目標を外しました", snap);
+    offerUndo(k ? "数字の目標を " + kpiText(k) + "（" + k.pct + "%）にしました" : "数字の目標を外しました", snap);
   });
   if(b = $("q_kpiclear")) b.addEventListener("click", function(){
     var o = kpiTarget(); if(!o || !o.kpi) return;
     var snap = JSON.stringify(state);
     delete o.kpi; commit();
-    offerUndo("数値の目標を外しました", snap);
+    offerUndo("数字の目標を外しました", snap);
   });
   /* タスク：押して済み⇔未済、編集モードで消す、下の欄で追加 */
   var tbs = document.querySelectorAll("#panel [data-task]");
