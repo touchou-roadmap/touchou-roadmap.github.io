@@ -160,6 +160,22 @@ button.trow:hover{background:var(--paper);border-color:transparent}
 .legend{display:flex;gap:10px 16px;flex-wrap:wrap;color:var(--sub);font-size:var(--t-cap);
   align-items:center;margin-top:14px}
 .legend b{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+/* 大きい目標（ロードマップ）の切り替えタブ。1ページで何枚でも持てる。
+   狭い画面では折り返さず横になぞる（折り返すと図の位置が枚数で変わって探しにくい） */
+.tabzone{margin-bottom:4px}
+.tabstrip{display:flex;gap:6px;align-items:center;overflow-x:auto;overflow-y:hidden;
+  padding:2px 2px 8px;-webkit-overflow-scrolling:touch}
+.tab{flex:none;min-height:44px;max-width:15em;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;background:transparent;border:1px solid var(--line);color:var(--sub);
+  border-radius:999px;padding:0 15px}
+.tab.on{background:var(--ridge);border-color:var(--ridge);color:var(--card);font-weight:700}
+.tabadd{flex:none;min-height:44px;border-style:dashed;border-radius:999px;padding:0 14px}
+.tabops{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:0 2px 8px}
+.tolab{font-size:var(--t-cap);color:var(--sub)}
+.toinput{min-height:44px;flex:1 1 12em;max-width:22em;padding:0 11px;
+  border:1px solid var(--line);border-radius:var(--r-ctrl);background:var(--card);color:var(--ink);
+  font-family:inherit;font-size:var(--t-sm)}
+.tobtn{min-height:44px}
 .banner{display:none;margin-top:10px;padding:9px 13px;border-radius:var(--r-ctrl);
   background:var(--accent-soft);color:var(--ink);font-size:var(--t-sm)}
 .banner.show{display:block}
@@ -572,49 +588,54 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
 </head><body>
 <script data-app id="rm-data" type="application/json">
 {
- "v": 1,
- "seq": 3,
- "title": "わたしのロードマップ",
- "subtitle": "",
- "updated": "",
- "start": {
-  "label": "いま",
-  "sub": ""
- },
- "note": "",
- "goal": {
-  "title": "ゴール",
-  "sub": "",
-  "detail": "",
-  "done": false
- },
- "peaks": [
+ "v": 2,
+ "docs": [
   {
-   "id": "p1",
-   "title": "中間目標 1",
-   "amount": "",
-   "due": "",
-   "detail": "",
-   "done": false
-  },
-  {
-   "id": "p2",
-   "title": "中間目標 2",
-   "amount": "",
-   "due": "",
-   "detail": "",
-   "done": false
-  },
-  {
-   "id": "p3",
-   "title": "中間目標 3",
-   "amount": "",
-   "due": "",
-   "detail": "",
-   "done": false
+   "v": 1,
+   "seq": 3,
+   "title": "わたしのロードマップ",
+   "subtitle": "",
+   "updated": "",
+   "start": {
+    "label": "いま",
+    "sub": ""
+   },
+   "note": "",
+   "goal": {
+    "title": "ゴール",
+    "sub": "",
+    "detail": "",
+    "done": false
+   },
+   "peaks": [
+    {
+     "id": "p1",
+     "title": "中間目標 1",
+     "amount": "",
+     "due": "",
+     "detail": "",
+     "done": false
+    },
+    {
+     "id": "p2",
+     "title": "中間目標 2",
+     "amount": "",
+     "due": "",
+     "detail": "",
+     "done": false
+    },
+    {
+     "id": "p3",
+     "title": "中間目標 3",
+     "amount": "",
+     "due": "",
+     "detail": "",
+     "done": false
+    }
+   ],
+   "steps": []
   }
- ],
- "steps": []
+ ]
 }
 </script>
 
@@ -625,6 +646,10 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
        詳しい説明はカードより前（後ろだと図の丸を押したとき画面外まで飛ばされる）。
        入れ物の中身は描画のたびに作る。ここに中身を書くと保存のたびに二重になる -->
   <div class="printhead" id="printhead" aria-hidden="true"></div>
+  <!-- 大きい目標（ロードマップ）の切り替え。押すと図もカードもまるごと入れ替わる。
+       どのタブを開いていたかは端末ごとに覚える（state に入れると、claude.ai で共有
+       しているときほかの人の画面まで動いてしまう。担当のしぼり込みと同じ作法） -->
+  <div class="tabzone noprint" id="tabbar"></div>
   <div class="banner" id="banner"></div>
   <div class="chartbox" id="chart" role="img" aria-label="目標達成までの山型ロードマップ"></div>
   <!-- 紙用の図。画面用の図（1000×600）を紙の幅いっぱいに広げると高さが出すぎて、
@@ -719,7 +744,14 @@ function today(){
 }
 
 /* ---------- 状態 ---------- */
-var state = JSON.parse($("rm-data").textContent);
+/* 保存の中身は「本」。大きい目標（ロードマップ）を何枚でも持てる。
+   state はそのうち「いま開いている1枚」を指す。図・カード・印刷・数字の目標は
+   今までどおり state だけを見るので、タブが増えても描画の仕組みは変えていない。
+   古い保存（1枚だけの形）は読み込むときに1枚の本へ包む（normBook） */
+var BOOK_V = 2;
+var book = null;          /* { v, docs:[ 1枚, 1枚, … ] } */
+var tabIdx = 0;           /* いま開いているタブ。保存はしない（下の TAB_KEY で端末が覚える） */
+var state = null;
 /* ---------- 公開版（claude.ai の外で開いたとき） ----------
    claude.ai の中ではページ自身を publish しなおして保存する（下の flush）。
    外で開いたときはその仕組みが無いので、この端末のブラウザ（localStorage）に保存する。
@@ -727,6 +759,8 @@ var state = JSON.parse($("rm-data").textContent);
    ページに入っている中身は見本で、一度でも保存したらこの端末の中身が優先される */
 var LOCAL = !(window.claude && window.claude.use);
 var STATE_KEY = "touchou.state.v1";
+book = normBook(JSON.parse($("rm-data").textContent)) || { v:BOOK_V, docs:[blankState()] };
+state = book.docs[0];
 var localBroken = false;   /* この端末に保存できない（プライベート表示など） */
 /* 読み込んだ中身が、このページで開ける形かを確かめる。足りない枠は空で補う。開けなければ null */
 function normState(s){
@@ -758,11 +792,120 @@ function normState(s){
   s.seq = Math.max(Number(s.seq) || 0, mx);
   return s;
 }
+/* 保存の中身を「本」の形にそろえる。
+   v1（1枚だけ）の古い保存・書き出したファイルも、そのまま1枚の本として開ける。
+   1枚も開けなければ null（呼んだ側が今の中身を残すか白紙にするかを決める） */
+function normBook(raw){
+  var docs = [], i;
+  if(raw && typeof raw === "object" && !Array.isArray(raw) && Array.isArray(raw.docs)){
+    for(i=0;i<raw.docs.length;i++){
+      var s = normState(raw.docs[i]);
+      if(s) docs.push(s);
+    }
+  }else{
+    var one = normState(raw);
+    if(one) docs.push(one);
+  }
+  if(!docs.length) return null;
+  return { v:BOOK_V, docs:docs };
+}
+/* state は book.docs の中の1枚を指している。差し替えるときは本の側も一緒に差し替える
+   （state だけ入れ替えると、画面は変わるのに保存される中身が古いままになる） */
+function setState(s){
+  state = s;
+  if(book && book.docs) book.docs[tabIdx] = s;
+}
+/* どのタブを開いていたかは「その端末で見ている人」の都合なので、
+   全員に配られる保存（本）ではなく端末の記憶に置く。担当のしぼり込みと同じ作法 */
+var TAB_KEY = "touchou.tab.v1";
+function saveTabIdx(){
+  try{ window.localStorage.setItem(TAB_KEY, String(tabIdx)); }catch(e){}
+}
+function restoreTabIdx(){
+  var n = -1;
+  try{ n = parseInt(window.localStorage.getItem(TAB_KEY), 10); }catch(e){ return; }
+  if(!(n >= 0) || n >= book.docs.length) return;   /* 枚数が減っていたら1枚目から */
+  tabIdx = n; state = book.docs[n];
+}
+var tabDraft = null;       /* タブの名前を打ちかけの文字（描き直しで消えないように控える） */
+var tabDelArmed = false;   /* 「このタブを消す」を1回押した状態 */
+/* 画面だけの状態を初期に戻す。タブを替えた・読み込んだ・白紙にしたときに呼ぶ。
+   戻さないと、前のタブで選んでいた項目のパネルが空の入力欄として残る */
+function resetView(){
+  sel = null; panelMode = "view"; quickAdd = ""; qaDraft = ""; taskDraft = "";
+  tallyOpen = ""; expanded = {}; tabDraft = null; tabDelArmed = false;
+  /* その担当がこのタブに居ないなら「全員」に戻す（黙って空の画面になるのを防ぐ） */
+  if(ownerFilter && allOwners().indexOf(ownerFilter) < 0){ ownerFilter = ""; saveOwnerFilter(""); }
+}
+function tabsMarkup(){
+  var h = '<div class="tabstrip" role="tablist" aria-label="大きい目標の切り替え">';
+  for(var i=0;i<book.docs.length;i++){
+    var on = (i === tabIdx);
+    h += '<button type="button" role="tab" class="tab' + (on ? " on" : "") + '"'
+      + ' data-tab="' + i + '" aria-selected="' + (on ? "true" : "false") + '">'
+      + esc(book.docs[i].title || "名前のない目標") + '</button>';
+  }
+  if(editMode) h += '<button type="button" class="tabadd" data-tabadd="1">＋ 大きい目標を足す</button>';
+  h += '</div>';
+  if(!editMode) return h;
+  /* 名前を変える口。ここが無いと題名を書き換える場所がどこにも無い */
+  var nm = (tabDraft == null ? (state.title || "") : tabDraft);
+  h += '<div class="tabops">'
+    + '<label class="tolab" for="tabname">このタブの名前</label>'
+    + '<input id="tabname" class="toinput" type="text" maxlength="40" value="' + esc(nm) + '">'
+    + '<button type="button" class="tobtn" data-tabrename="1">名前を変える</button>';
+  if(LOCAL) h += '<button type="button" class="tobtn" data-tabone="1">このタブだけ書き出す</button>';
+  if(book.docs.length > 1){
+    h += '<button type="button" class="tobtn ' + (tabDelArmed ? "armed" : "warn") + '" data-tabdel="1">'
+      + (tabDelArmed ? "本当にこのタブを消す（もう一度押す）" : "このタブを消す") + '</button>';
+  }
+  return h + '</div>';
+}
+function switchTab(i){
+  if(!(i >= 0) || i >= book.docs.length || i === tabIdx) return;
+  tabIdx = i; state = book.docs[i]; saveTabIdx();
+  resetView();
+  render();
+  toast("「" + (state.title || "名前のない目標") + "」に切り替えました");
+}
+function addTab(){
+  var snap = bookSnap();
+  var s = blankState();
+  s.title = "新しい大きい目標";
+  book.docs.push(s);
+  tabIdx = book.docs.length - 1; state = s; saveTabIdx();
+  resetView();
+  commit();
+  offerUndo("大きい目標を足しました", snap, "book");
+}
+function renameTab(){
+  var inp = $("tabname");
+  var nm = (inp ? inp.value : "").trim();
+  if(!nm){ toast("名前を入れてください", true); if(inp) inp.focus(); return; }
+  if(nm === state.title){ tabDraft = null; render(); return; }
+  var snap = JSON.stringify(state);
+  state.title = nm; tabDraft = null;
+  commit();
+  offerUndo("名前を「" + nm + "」にしました", snap);
+}
+function delTab(){
+  if(book.docs.length < 2) return;   /* 最後の1枚は消せない（白紙に戻すボタンを使う） */
+  /* 消すものが大きいので2回押す（iframe の中では confirm が黙って効かない） */
+  if(!tabDelArmed){ tabDelArmed = true; render(); return; }
+  var snap = bookSnap();
+  var nm = state.title || "名前のない目標";
+  book.docs.splice(tabIdx, 1);
+  tabIdx = Math.min(tabIdx, book.docs.length - 1);
+  state = book.docs[tabIdx]; saveTabIdx();
+  resetView();
+  commit();
+  offerUndo("「" + nm + "」を消しました", snap, "book");
+}
 if(LOCAL){
   try{
     var saved = window.localStorage.getItem(STATE_KEY);
-    var ls = saved ? normState(JSON.parse(saved)) : null;
-    if(ls) state = ls;
+    var lb = saved ? normBook(JSON.parse(saved)) : null;
+    if(lb){ book = lb; tabIdx = 0; state = book.docs[0]; }
     window.localStorage.setItem(STATE_KEY + ".probe", "1");
     window.localStorage.removeItem(STATE_KEY + ".probe");
   }catch(e){ localBroken = true; }
@@ -1096,6 +1239,7 @@ function chartConf(narrow, forPrint){
     return { W:1600, H:600, ground:560, startX:56, startY:544,
              spanW:1240, riseH:330, topY:140, valleyDrop:118, dipRun:80, dipDrop:72,
              goalShape:"circle", labels:true, levelX:34, levelGap:34,
+             bySteps:true, tailAvg:true,
              goalX:1442, goalY:118, goalR:64 };
   }
   return narrow
@@ -1104,13 +1248,68 @@ function chartConf(narrow, forPrint){
        一番高い山も少し下げて、山の番号とゴールの帯・そえがきの間をあける */
     ? { W:360, H:660, ground:600, startX:24, startY:580,
         spanW:288, riseH:342, topY:178, valleyDrop:110, dipRun:34, dipDrop:50,
-        goalShape:"band", labels:false, levelX:10, levelGap:22, bySteps:true, arrowAt:0.99 }
+        goalShape:"band", labels:false, levelX:10, levelGap:22, bySteps:true, arrowAt:0.99,
+        stepGap:58 }
     : { W:1000, H:600, ground:560, startX:42, startY:544,
         spanW:760, riseH:330, topY:140, valleyDrop:118, dipRun:58, dipDrop:72,
-        goalShape:"circle", labels:true, levelX:26, levelGap:34 };
+        goalShape:"circle", labels:true, levelX:26, levelGap:34,
+        bySteps:true, tailAvg:true };
+}
+/* 図の丸と丸の間隔（図の座標）。丸は半径15＝直径30なので、これだけあれば重ならない。
+   縦長（スマホ）の図は conf 側で 58 にしている。指で押す的を 44px 以上にするには、
+   当たり判定の半径が 28 要り、そのためには隣との間隔が 56 以上ないと判定が重なるため
+   （320px の端末で丸が 39px しかなく押しにくかった。2026-09-23 に実測して決めた） */
+var STEP_GAP = 36;
+/* 山や小目標をいくつ足しても図が壊れないようにする（本人指示 2026-09-23）。
+   斜面が短いと丸が重なって押し分けられない。図は画面の幅に合わせて縮むので、
+   横に広げても全体が小さくなるだけで解決しない。縦に伸ばすと viewBox が縦に伸びた分
+   画面でも縦に伸びるので、丸の大きさを変えずに斜面だけ長くできる。
+   いちばん詰まっている斜面が STEP_GAP を満たすまで伸ばす（伸ばしすぎないよう上限つき） */
+function stretchConf(c, k){
+  if(!(k > 1.001)) return c;
+  var o = {}, key;
+  for(key in c) if(Object.prototype.hasOwnProperty.call(c, key)) o[key] = c[key];
+  var add = c.riseH * (k - 1);
+  o.riseH = c.riseH * k;
+  o.valleyDrop = c.valleyDrop * k;
+  o.dipDrop = c.dipDrop * k;
+  /* いちばん高い山の高さは変えず、地面を下げて山全体を大きくする
+     （上を詰めるとゴールや帯と重なる） */
+  o.H = c.H + add;
+  o.ground = c.ground + add;
+  o.startY = c.startY + add;
+  return o;
+}
+/* いちばん詰まっている斜面の、丸と丸の間隔 */
+function minStepGap(g){
+  var mn = Infinity;
+  for(var i=0;i<g.n;i++){
+    var m = stepsOf(state.peaks[i].id).length;
+    if(!m) continue;
+    var a = slopeAnchor(g,i), b = g.apexes[i];
+    var len = Math.sqrt(Math.pow(b.x-a.x,2) + Math.pow(b.y-a.y,2));
+    mn = Math.min(mn, len/(m+1));
+  }
+  return mn === Infinity ? 0 : mn;
 }
 function geometry(narrow, forPrint){
-  var c = chartConf(narrow, forPrint);
+  var conf0 = chartConf(narrow, forPrint);
+  var k = 1, g = buildGeometry(conf0);
+  for(var it=0; it<6; it++){
+    var gap = minStepGap(g);
+    var need = conf0.stepGap || STEP_GAP;
+    if(!(gap > 0) || gap >= need || k >= 3.5) break;
+    k = Math.min(3.5, k * (need / gap));
+    g = buildGeometry(stretchConf(conf0, k));
+  }
+  /* それでも足りないときだけ丸を小さくする。44px の目安を割らないよう下限は11 */
+  var gap2 = minStepGap(g), need2 = conf0.stepGap || STEP_GAP;
+  g.stepR = (gap2 > 0 && gap2 < need2)
+    ? Math.max(11, Math.min(15, (gap2 - 4) / 2))
+    : 15;
+  return g;
+}
+function buildGeometry(c){
   var n = state.peaks.length;
   var startP = { x:c.startX, y:c.startY };
   var apexes = [], valleys = [];
@@ -1118,12 +1317,16 @@ function geometry(narrow, forPrint){
   var base = c.ground - 80;
   /* 横幅の配り方。bySteps のときは小目標の数に比例させる。
      等分にすると、小目標が多い山の斜面だけ丸が詰まって押し分けられなくなる */
-  var wts = [], tot = 1;   /* 末尾の下り分で +1 */
+  var wts = [], sumw = 0;
   for(var i=0;i<n;i++){
     var wt = c.bySteps ? stepsOf(state.peaks[i].id).length + 1 : 1;
-    wts.push(wt); tot += wt;
+    wts.push(wt); sumw += wt;
   }
-  if(!c.bySteps) tot = n + 1;
+  /* 末尾の下りに配る幅。tailAvg のときは「山1つぶんの平均」にする。
+     こうすると小目標の数がそろっている図は、数で配る前とまったく同じ位置になる
+     （1固定にすると、既存の図の山が右へずれて紙の版組みまで変わる） */
+  var tailW = (c.bySteps && c.tailAvg && n) ? (sumw / n) : 1;
+  var tot = c.bySteps ? (sumw + tailW) : (n + 1);
   var x = c.startX - 2;
   for(var i=0;i<n;i++){
     x += c.spanW * wts[i] / tot;
@@ -1147,13 +1350,19 @@ function geometry(narrow, forPrint){
     goalFoot = { x:goal.x, y:goal.y + goal.r + 4 };
   }
   return { n:n, c:c, start:startP, apexes:apexes, valleys:valleys,
-           dip:dip, goal:goal, goalFoot:goalFoot };
+           dip:dip, goal:goal, goalFoot:goalFoot, stepR:15 };
 }
 function slopeAnchor(g, i){ return i===0 ? g.start : g.valleys[i-1]; }
 function onSlope(a, b, t){ return { x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t }; }
 
 /* ---------- 描画 ---------- */
 function render(){
+  /* タブの帯は、大きい目標が2枚以上あるときと編集モードのときだけ出す。
+     1枚しか無いのに帯を出すと、画面のいちばん上が図でなくなる
+     （「画面は山の図から始める」本人指示 2026-09-19。verify_now.py が見張っている） */
+  var showTabs = (book.docs.length > 1) || editMode;
+  $("tabbar").hidden = !showTabs;
+  $("tabbar").innerHTML = showTabs ? tabsMarkup() : "";
   $("ttl").textContent = state.title || "登頂ロードマップ";
   document.title = state.title || "登頂ロードマップ";
   $("subttl").textContent = (state.subtitle||"") +
@@ -1561,7 +1770,7 @@ function chartMarkup(forPrint, narrow){
          押した丸と違う小目標が開く（スマホの斜面は短いので実際に起きる） */
       var sw = Math.sqrt(Math.pow(b0.x-a0.x,2) + Math.pow(b0.y-a0.y,2)) / (m0+1);
       stepDraw.push({ st:list0[j], pt:pt0, no:j+1, peak:pk0,
-                      hitR: Math.max(16, Math.min(27, sw/2)) });
+                      hitR: Math.max(g.stepR + 1, Math.min(28, sw/2)) });
       if(splitIdx < 0 && list0[j].status !== "done"){
         splitIdx = pts.length - 1;
         hereAt = pt0;
@@ -1696,6 +1905,7 @@ function chartMarkup(forPrint, narrow){
 
   /* 小目標の丸。番号だけを置き、名前は下のカードで読ませる
      （図の上に文字を並べると、稜線や隣の目標と重なって何を指すか読めなくなる） */
+  var R = g.stepR || 15;   /* 詰まっているときだけ丸が小さくなる（上は15のまま） */
   for(var i=0;i<stepDraw.length;i++){
     var d = stepDraw[i], st = d.st, pt = d.pt;
     var isSel = !forPrint && sel && sel.kind==="step" && sel.id===st.id;
@@ -1711,11 +1921,12 @@ function chartMarkup(forPrint, narrow){
     /* できた丸の後ろで明滅する光。選んだ印の枠より先に描いて枠を隠さない。
        印刷用ファイルのCSSには定義が無く、入れると黒い円で刷られるので紙には出さない */
     if(!forPrint && st.status === "done"){
-      s += '<circle class="donehalo" cx="'+pt.x+'" cy="'+pt.y+'" r="22"/>';
+      s += '<circle class="donehalo" cx="'+pt.x+'" cy="'+pt.y+'" r="'+(R+7)+'"/>';
     }
-    if(isSel) s += '<circle class="selring" cx="'+pt.x+'" cy="'+pt.y+'" r="21"/>';
-    s += '<circle class="stepc '+esc(st.status)+'" cx="'+pt.x+'" cy="'+pt.y+'" r="15"/>';
-    s += '<text class="stepnum '+esc(st.status)+'" x="'+pt.x+'" y="'+(pt.y+4.5)+'" text-anchor="middle">'+d.no+'</text>';
+    if(isSel) s += '<circle class="selring" cx="'+pt.x+'" cy="'+pt.y+'" r="'+(R+6)+'"/>';
+    s += '<circle class="stepc '+esc(st.status)+'" cx="'+pt.x+'" cy="'+pt.y+'" r="'+R+'"/>';
+    s += '<text class="stepnum '+esc(st.status)+'" x="'+pt.x+'" y="'+(pt.y+R*0.3)+'" text-anchor="middle"'
+      + (R < 15 ? ' style="font-size:'+(R*0.93).toFixed(1)+'px"' : '') + '>'+d.no+'</text>';
     s += '</g>';
   }
 
@@ -1997,8 +2208,11 @@ function renderPanel(){
     }else{
       var v = pk || {title:"",amount:"",due:"",detail:""};
       h += '<h2>'+(panelMode==="new"?"山（中間目標）を追加":"中間目標を書き換える")+'</h2>';
-      if(panelMode==="new" && state.peaks.length>=3){
-        h += '<p class="hint">※ 大きい目標は3つまでにしておくと、見る人が覚えやすく、図も読みやすくなります。</p>';
+      if(panelMode==="new" && state.peaks.length>=5){
+        /* 数の上限は設けない（図は数に合わせて縦に伸びる）。
+           ただし覚えやすさの目安は伝える。止めはしない */
+        h += '<p class="hint">※ いま山は'+state.peaks.length+'つあります。多くても読めますが、'
+          + '5つくらいまでにしておくと見る人が覚えやすくなります。</p>';
       }
       h += '<div class="form">'
         + '<div><label>中間目標の名前（頂上に出ます）</label><input id="f_title" value="'+esc(v.title)+'"></div>'
@@ -2272,9 +2486,14 @@ function submitQa(){
 
 /* 取り消す。操作の直前の state を丸ごと控えておき、押されたら戻す。
    控えるのは直前の1回分だけ（数秒で消える） */
-var undoSnap = null, undoTimer = null;
-function offerUndo(msg, snap){
-  undoSnap = snap;
+var undoSnap = null, undoTimer = null, undoKind = "state";
+/* 控えの単位は2種類。
+   "state" … 中身の編集（いまのタブ1枚ぶん）
+   "book"  … タブそのものの操作・読み込み・白紙（本まるごと＋開いていたタブ）
+   分けているのは、タブを消した取り消しで「消えたタブごと」戻す必要があるため */
+function bookSnap(){ return JSON.stringify({ b:book, i:tabIdx }); }
+function offerUndo(msg, snap, kind){
+  undoSnap = snap; undoKind = kind || "state";
   var u = $("undo");
   u.innerHTML = '<span class="umsg">' + esc(msg) + '</span>'
     + '<button type="button" id="undoBtn">取り消す</button>';
@@ -2292,7 +2511,18 @@ function hideUndo(){
 }
 function undoLast(){
   if(!undoSnap) return;
-  state = JSON.parse(undoSnap);
+  if(undoKind === "book"){
+    var o = JSON.parse(undoSnap);
+    var b = normBook(o.b);
+    if(b){
+      book = b;
+      tabIdx = Math.min(Math.max(o.i | 0, 0), book.docs.length - 1);
+      state = book.docs[tabIdx];
+      saveTabIdx();
+    }
+  }else{
+    setState(JSON.parse(undoSnap));
+  }
   /* 戻した結果、選んでいた項目が消えていたら選択を解く
      （解かないと、無い項目のパネルが空の入力欄として出る） */
   if(sel && sel.id && ((sel.kind==="step" && !stepById(sel.id)) ||
@@ -2342,6 +2572,26 @@ wireOpen("chart");
 wireOpen("cards");
 wireOpen("nextbar");
 wireOpen("now");
+$("tabbar").addEventListener("click", function(e){
+  var b = e.target.closest ? e.target.closest("button") : null;
+  if(!b) return;
+  /* 消すの2回押しは、ほかのボタンを押した時点でやめる（押しっぱなしの赤い札を残さない） */
+  if(!b.dataset.tabdel && tabDelArmed){ tabDelArmed = false; }
+  if(b.dataset.tab != null){ switchTab(parseInt(b.dataset.tab, 10)); return; }
+  if(b.dataset.tabadd){ addTab(); return; }
+  if(b.dataset.tabrename){ renameTab(); return; }
+  if(b.dataset.tabone){ exportOne(); render(); return; }
+  if(b.dataset.tabdel){ delTab(); return; }
+});
+$("tabbar").addEventListener("input", function(e){
+  if(e.target.id === "tabname") tabDraft = e.target.value;
+});
+$("tabbar").addEventListener("keydown", function(e){
+  if(e.target.id !== "tabname") return;
+  /* 日本語入力の変換確定のEnterでは決めない（Safariは isComposing を立てず 229 を返す） */
+  if(e.key === "Enter" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); renameTab(); }
+  else if(e.key === "Escape"){ tabDraft = null; render(); }
+});
 $("ownerbar").addEventListener("click", function(e){
   var b = e.target.closest ? e.target.closest("[data-owner]") : null;
   if(!b) return;
@@ -2359,9 +2609,15 @@ function commit(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(flush, 600);
 }
+/* 保存したページの題名。2枚以上あるときは1枚目の名前に枚数を添える */
+function docTitle(){
+  var first = (book.docs[0] && book.docs[0].title) || "登頂ロードマップ";
+  return book.docs.length > 1 ? first + "（ほか" + (book.docs.length - 1) + "件）" : first;
+}
 function buildDoc(){
   if(!DATA_EL || !BODY_PARTS.length) return null;
-  var json = JSON.stringify(state, null, 1).replace(/</g, "\\u003c");
+  /* 保存するのは本ぜんぶ（タブが何枚あっても1つのページに収まる） */
+  var json = JSON.stringify(book, null, 1).replace(/</g, "\\u003c");
   var body = "";
   for(var i = 0; i < BODY_PARTS.length; i++){
     body += (BODY_PARTS[i] === null
@@ -2370,7 +2626,9 @@ function buildDoc(){
   }
   return '<!doctype html>\n<html lang="ja"><head><meta charset="utf-8">'
     + '<meta name="viewport" content="width=device-width,initial-scale=1">'
-    + "<title>" + esc(state.title || "登頂ロードマップ") + "<\/title>\n" + HEAD_HTML
+    /* ページの題名は「1枚目のタブ」で決める。いま開いているタブで決めると、
+       タブを切り替えて保存するたびに Artifact の名前まで変わってしまう */
+    + "<title>" + esc(docTitle()) + "<\/title>\n" + HEAD_HTML
     + "</head><body>\n" + body + "</body></html>";
 }
 function flush(){
@@ -2410,7 +2668,7 @@ function flush(){
 function saveLocal(){
   dirty = false;
   try{
-    window.localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(STATE_KEY, JSON.stringify(book));
     toast("この端末に保存しました");
   }catch(e){
     localBroken = true; showLocalBanner();
@@ -2432,9 +2690,19 @@ function downloadBlob(name, text, type){
   setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1500);
 }
 function exportFile(){
+  /* 控え用。タブがぜんぶ入る（1枚だけ人に渡したいときは下の exportOne） */
+  var one = book.docs.length === 1;
+  var name = (one ? safeName(state.title) : safeName(state.title) + "_ほか" + (book.docs.length-1) + "件")
+    + "_" + today() + ".json";
+  downloadBlob(name, JSON.stringify(book, null, 1), "application/json");
+  toast("「" + name + "」に" + (one ? "" : book.docs.length + "枚ぶんを") + "書き出しました");
+}
+/* いま開いているタブだけを書き出す。人に1枚だけ渡すときに使う
+   （ぜんぶ書き出すと、渡すつもりのない目標まで相手に届いてしまう） */
+function exportOne(){
   var name = safeName(state.title) + "_" + today() + ".json";
   downloadBlob(name, JSON.stringify(state, null, 1), "application/json");
-  toast("「" + name + "」を書き出しました");
+  toast("「" + name + "」（このタブだけ）を書き出しました");
 }
 /* 読み込む。いまの中身は置きかわるが、7秒の「取り消す」で戻せる */
 function importFile(file){
@@ -2442,14 +2710,14 @@ function importFile(file){
   if(file.size > 3000000){ toast("ファイルが大きすぎます（このページで書き出したファイルを選んでください）", true); return; }
   var fr = new FileReader();
   fr.onload = function(){
-    var s = null;
-    try{ s = normState(JSON.parse(String(fr.result || ""))); }catch(e){ s = null; }
-    if(!s){ toast("このファイルは読み込めません。このページの「ファイルに書き出す」で作ったファイルを選んでください", true); return; }
-    var snap = JSON.stringify(state);
-    state = s; sel = null; panelMode = "view"; quickAdd = ""; qaDraft = ""; taskDraft = ""; tallyOpen = "";
-    if(ownerFilter && allOwners().indexOf(ownerFilter) < 0){ ownerFilter = ""; saveOwnerFilter(""); }
+    var b = null;
+    try{ b = normBook(JSON.parse(String(fr.result || ""))); }catch(e){ b = null; }
+    if(!b){ toast("このファイルは読み込めません。このページの「ファイルに書き出す」で作ったファイルを選んでください", true); return; }
+    var snap = bookSnap();
+    book = b; tabIdx = 0; state = book.docs[0]; saveTabIdx();
+    resetView();
     commit();
-    offerUndo("「" + file.name + "」を読み込みました", snap);
+    offerUndo("「" + file.name + "」を読み込みました（" + book.docs.length + "枚）", snap, "book");
   };
   fr.onerror = function(){ toast("ファイルを読めませんでした。もう一度選んでください", true); };
   fr.readAsText(file);
@@ -2725,18 +2993,23 @@ if(LOCAL){
     /* 消すものが大きいので2回押す（confirm は使わない） */
     if(!this.dataset.armed){
       this.dataset.armed = "1"; this.className = "armed";
-      this.textContent = "本当に白紙に戻す（いまの中身は消えます・もう一度押す）";
+      this.textContent = "本当に白紙に戻す（"
+        + (book.docs.length > 1 ? "タブ" + book.docs.length + "枚ぶんの" : "いまの")
+        + "中身は消えます・もう一度押す）";
       return;
     }
     delete this.dataset.armed; this.className = "warn"; this.textContent = "ぜんぶ消して白紙に戻す";
-    var snap = JSON.stringify(state);
-    state = blankState(); sel = null; panelMode = "view"; quickAdd = ""; tallyOpen = "";
+    var snap = bookSnap();
+    book = { v:BOOK_V, docs:[blankState()] };
+    tabIdx = 0; state = book.docs[0]; saveTabIdx();
+    resetView();
     ownerFilter = ""; saveOwnerFilter("");
     commit();
-    offerUndo("白紙にしました", snap);
+    offerUndo("白紙にしました", snap, "book");
   });
   if(localBroken) showLocalBanner();
 }
+restoreTabIdx();   /* しぼり込みの復元より先。担当の一覧はタブごとに違う */
 var restoredOwner = restoreOwnerFilter();
 render();
 if(restoredOwner) toast("「" + restoredOwner + "」でしぼって表示しています（この端末だけ）");
