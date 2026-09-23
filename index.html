@@ -573,178 +573,48 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
 <script data-app id="rm-data" type="application/json">
 {
  "v": 1,
- "seq": 45,
- "title": "カフェ開業ロードマップ",
- "subtitle": "見本です（架空のカフェ開業）。「編集モード」で書き換えるか、白紙から始めてください",
- "updated": "2027-02-01",
+ "seq": 3,
+ "title": "わたしのロードマップ",
+ "subtitle": "",
+ "updated": "",
  "start": {
   "label": "いま",
-  "sub": "2027年2月"
+  "sub": ""
  },
- "note": "金額・時期は開業前の見込みです。実際の見積もりや売上が出たら、その数字に置きかえてください。",
+ "note": "",
  "goal": {
-  "title": "毎月 50万円",
-  "sub": "お店からもらう自分の給料（開業3年目）",
-  "detail": "お店の利益から、自分の給料を毎月50万円とれる状態にする。月の売上180万円・原価と経費130万円が目安。数字は開業前の見込みなので、実際の売上が見えてきたら見直す。",
-  "done": false,
-  "kpi": {
-   "label": "自分の給料",
-   "target": 50,
-   "current": 0,
-   "unit": "万円"
-  }
+  "title": "ゴール",
+  "sub": "",
+  "detail": "",
+  "done": false
  },
  "peaks": [
   {
    "id": "p1",
-   "title": "物件を決めて契約する",
-   "amount": "保証金 200万円",
-   "due": "2027年3月まで",
-   "detail": "駅から徒歩7分以内・20席・家賃30万円以下、の3つを満たす物件を1件に決めて、契約書を交わすところまで。ここが決まらないと工事の見積もりも取れない。",
-   "done": false,
-   "kpi": {
-    "label": "見た物件",
-    "target": 3,
-    "current": 2,
-    "unit": "件"
-   }
+   "title": "中間目標 1",
+   "amount": "",
+   "due": "",
+   "detail": "",
+   "done": false
   },
   {
    "id": "p2",
-   "title": "内装と仕入れをそろえる",
-   "amount": "工事・備品 500万円",
-   "due": "2027年8月まで",
-   "detail": "内装工事・厨房機器・食器をそろえ、保健所の営業許可をとって、開店日にお客さんを入れられる状態にする。",
-   "done": false,
-   "kpi": {
-    "label": "そろえた費用",
-    "target": 500,
-    "current": 120,
-    "unit": "万円"
-   }
+   "title": "中間目標 2",
+   "amount": "",
+   "due": "",
+   "detail": "",
+   "done": false
   },
   {
    "id": "p3",
-   "title": "月の売上180万円にする",
-   "amount": "1日60人・客単価1,000円",
-   "due": "2028年8月まで",
-   "detail": "開店から1年で、月の売上を180万円まで持っていく。1日あたり60人・客単価1,000円が目安。まず近所の常連さんをつくる。",
-   "done": false,
-   "kpi": {
-    "label": "月の売上",
-    "target": 180,
-    "current": 0,
-    "unit": "万円"
-   }
+   "title": "中間目標 3",
+   "amount": "",
+   "due": "",
+   "detail": "",
+   "done": false
   }
  ],
- "steps": [
-  {
-   "id": "s1",
-   "peak": "p1",
-   "title": "不動産屋3社に条件を伝える",
-   "owner": "たろう",
-   "due": "",
-   "dueOn": "2027-01-20",
-   "status": "done",
-   "doneAt": "2027-01-18",
-   "detail": "「駅から徒歩7分以内・20坪前後・家賃30万円以下」を紙1枚にまとめて、3社に渡す。3社に渡し終わったら、この小目標は終わり。"
-  },
-  {
-   "id": "s2",
-   "peak": "p1",
-   "title": "候補3件を見て比較表を作る",
-   "owner": "たろう・はなこ",
-   "due": "",
-   "dueOn": "2027-01-31",
-   "status": "urgent",
-   "detail": "家賃・保証金・更新料・広さ・前の道の人通りを、1枚の表にする。10年借りたときの総額まで出して、2人で見て1件に絞る。",
-   "tasks": [
-    {
-     "id": "t41",
-     "title": "候補を3件にしぼる",
-     "done": true
-    },
-    {
-     "id": "t42",
-     "title": "3件とも見に行き、写真を撮る",
-     "done": true
-    },
-    {
-     "id": "t43",
-     "title": "家賃・保証金・広さ・人通りを表にする",
-     "done": false
-    },
-    {
-     "id": "t44",
-     "title": "10年借りたときの総額を出す",
-     "done": false
-    },
-    {
-     "id": "t45",
-     "title": "2人で表を見て1件に決める",
-     "done": false
-    }
-   ]
-  },
-  {
-   "id": "s3",
-   "peak": "p1",
-   "title": "契約書を専門家に見てもらう",
-   "owner": "はなこ",
-   "due": "",
-   "dueOn": "2027-02-03",
-   "status": "soon",
-   "detail": "判子を押す前に必ず1回見てもらう。とくに、途中で解約するときの条件と、出るときにどこまで元に戻すか（原状回復）の範囲を確認する。"
-  },
-  {
-   "id": "s4",
-   "peak": "p2",
-   "title": "工務店3社から見積もりをとる",
-   "owner": "たろう",
-   "due": "",
-   "dueOn": "2027-04-10",
-   "status": "todo",
-   "detail": "同じ図面を渡して3社に頼む。金額だけで選ばず、工期と、カフェを何軒やったことがあるかも聞いて決める。"
-  },
-  {
-   "id": "s5",
-   "peak": "p2",
-   "title": "焙煎所3か所で豆を試飲する",
-   "owner": "はなこ",
-   "due": "",
-   "dueOn": "2027-04-30",
-   "status": "soon",
-   "detail": "1kgあたりの値段と、5kgの少量から頼めるかを確認する。3か所まわったうえで、仕入れ先を1社に決める。"
-  },
-  {
-   "id": "s6",
-   "peak": "p2",
-   "title": "保健所に営業許可を申請する",
-   "owner": "たろう",
-   "due": "開店の1か月前まで",
-   "status": "todo",
-   "detail": "図面ができた時点で一度相談に行く。手洗い場とシンクの数が足りず、工事のやり直しになることが多いので、着工前に確認する。"
-  },
-  {
-   "id": "s7",
-   "peak": "p3",
-   "title": "近所1,000世帯にちらしを配る",
-   "owner": "たろう",
-   "due": "開店の1週間前まで",
-   "status": "todo",
-   "detail": "開店1週間前から3日かけて配る。割引券をつけておいて、あとから何枚戻ってきたかを数える。"
-  },
-  {
-   "id": "s8",
-   "peak": "p3",
-   "title": "常連カードを100枚配る",
-   "owner": "はなこ",
-   "due": "開店から1か月後まで",
-   "status": "todo",
-   "detail": "10杯で1杯無料のカード。開店直後は手が回らないので、落ち着く1か月後から配りはじめて、100枚配り切る。"
-  }
- ]
+ "steps": []
 }
 </script>
 
@@ -794,7 +664,7 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
   <div class="edittools noprint" id="edittools">
     <button id="addPeakBtn">＋ 山（中間目標）を追加</button>
     <button id="editGoalBtn">🚩 ゴールを書き換える</button>
-    <button id="blankBtn" class="warn" hidden>見本を消して白紙から始める</button>
+    <button id="blankBtn" class="warn" hidden>ぜんぶ消して白紙に戻す</button>
   </div>
   <!-- 注意書きはデータ（state.note）から出す。ここに文を直接書くと、
        別の会社のデータに差し替えても前の会社の注意書きが紙に残る
@@ -2853,10 +2723,10 @@ if(LOCAL){
     /* 消すものが大きいので2回押す（confirm は使わない） */
     if(!this.dataset.armed){
       this.dataset.armed = "1"; this.className = "armed";
-      this.textContent = "本当に白紙にする（いまの中身は消えます・もう一度押す）";
+      this.textContent = "本当に白紙に戻す（いまの中身は消えます・もう一度押す）";
       return;
     }
-    delete this.dataset.armed; this.className = "warn"; this.textContent = "見本を消して白紙から始める";
+    delete this.dataset.armed; this.className = "warn"; this.textContent = "ぜんぶ消して白紙に戻す";
     var snap = JSON.stringify(state);
     state = blankState(); sel = null; panelMode = "view"; quickAdd = ""; tallyOpen = "";
     ownerFilter = ""; saveOwnerFilter("");
