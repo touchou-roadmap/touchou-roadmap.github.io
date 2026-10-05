@@ -86,6 +86,12 @@ h1{font-family:"Zen Old Mincho","Hiragino Mincho ProN","Yu Mincho",serif;font-we
 /* 紙のときだけ出す見出し（画面では下の帯に題名がある） */
 .printhead{display:none}
 .subttl{color:var(--sub);font-size:var(--t-cap);margin-top:3px}
+/* 見出しを変える欄。.tnedit は控えめな文字ボタン（.foldbtn と同じ考え方）、
+   開いたあとの入れ物はタブの帯の書き換え欄（.tabops）をそのまま使い回す */
+.titleedit{margin-top:6px}
+button.tnedit{padding:0 10px;color:var(--sub);border-color:transparent;background:transparent}
+button.tnedit:hover{color:var(--ink);border-color:var(--line)}
+.titleops{padding:0}
 .hdr-right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 /* 押せるものは高さ44px以上。指で押せない大きさにしない */
 button{font-family:inherit;font-size:var(--t-sm);cursor:pointer;border-radius:var(--r-ctrl);
@@ -657,6 +663,9 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
     <div class="pfttl">
       <h1 id="ttl">登頂ロードマップ</h1>
       <div class="subttl" id="subttl"></div>
+      <!-- 目標を決めたあとに見出し（ロードマップの名前）を変える場所。
+           タブが1枚で編集モードに入っていないと変える場所が無かった（本人指摘 2026-09-23） -->
+      <div class="titleedit noprint" id="titleEditZone"></div>
     </div>
     <div class="hdr-right">
       <button id="editBtn">編集モード</button>
@@ -857,13 +866,31 @@ function restoreTabIdx(){
 }
 var tabDraft = null;       /* タブの名前を打ちかけの文字（描き直しで消えないように控える） */
 var tabDelArmed = false;   /* 「このタブを消す」を1回押した状態 */
+/* 見出し（ロードマップの名前）をその場で変える欄を開いているか。
+   タブが1枚で編集モードに入っていないと、名前を変える場所がどこにも無かった
+   （本人指摘 2026-09-23「目標を設定した後に見出しを編集できるようにして」）。
+   編集モードに入らなくても使える（期日・担当のしぼり込みと同じ考え方） */
+var titleEditOpen = false;
 /* 画面だけの状態を初期に戻す。タブを替えた・読み込んだ・白紙にしたときに呼ぶ。
    戻さないと、前のタブで選んでいた項目のパネルが空の入力欄として残る */
 function resetView(){
   sel = null; panelMode = "view"; quickAdd = ""; qaDraft = ""; taskDraft = "";
-  tallyOpen = ""; expanded = {}; tabDraft = null; tabDelArmed = false;
+  tallyOpen = ""; expanded = {}; tabDraft = null; tabDelArmed = false; titleEditOpen = false;
   /* その担当がこのタブに居ないなら「全員」に戻す（黙って空の画面になるのを防ぐ） */
   if(ownerFilter && allOwners().indexOf(ownerFilter) < 0){ ownerFilter = ""; saveOwnerFilter(""); }
+}
+/* 見出しの書き換え欄。タブの帯にある書き換え欄（編集モードのとき）と同じ部品（#tabname）を使う。
+   二重に出さないよう、編集モードのときはタブの帯の欄に任せてここは空にする（render() 側で分岐） */
+function titleEditMarkup(){
+  if(!titleEditOpen){
+    return '<button type="button" class="tnedit" id="titleEditOpenBtn">✎ 名前を変える</button>';
+  }
+  var nm = (tabDraft == null ? (state.title || "") : tabDraft);
+  return '<div class="tabops titleops">'
+    + '<label class="tolab" for="tabname">見出し（ロードマップの名前）</label>'
+    + '<input id="tabname" class="toinput" type="text" maxlength="40" value="' + esc(nm) + '">'
+    + '<button type="button" class="tobtn primary" data-tabrename="1">名前を変える</button>'
+    + '<button type="button" class="tobtn" id="titleEditCancelBtn">やめる</button></div>';
 }
 function tabsMarkup(){
   var h = '<div class="tabstrip" role="tablist" aria-label="大きい目標の切り替え">';
@@ -1289,6 +1316,9 @@ function render(){
   var showTabs = (book.docs.length > 1) || editMode;
   $("tabbar").hidden = !showTabs;
   $("tabbar").innerHTML = showTabs ? tabsMarkup() : "";
+  /* 見出しを変える欄は、編集モードのときはタブの帯の書き換え欄に任せる（#tabname の二重出現を防ぐ）。
+     編集モードでないときは、タブが1枚でも何枚でもここから変えられる */
+  $("titleEditZone").innerHTML = editMode ? "" : titleEditMarkup();
   $("ttl").textContent = state.title || "登頂ロードマップ";
   document.title = state.title || "登頂ロードマップ";
   $("subttl").textContent = (state.subtitle||"") +
@@ -2059,7 +2089,10 @@ function renderPanel(){
         + (st.dueOn ? '<button type="button" id="q_dueclear">日付を消す</button>' : '')
         + '</div>';
       h += '<div class="panelbtns noprint">';
-      if(editMode) h += '<button type="button" id="editItemBtn">書き換える</button>' + delButton();
+      /* 書き換えるは編集モードに入らなくても使える（本人指摘 2026-09-23「目標を設定した後に
+         見出しを編集できるようにして」。期日と同じ考え方）。消すのは編集モードのときだけ */
+      h += '<button type="button" id="editItemBtn">書き換える</button>';
+      if(editMode) h += delButton();
       h += '<button type="button" id="closeBtn">とじる</button></div>';
     }else{
       var v = st || {title:"",owner:"",due:"",detail:"",status:"todo"};
@@ -2089,7 +2122,9 @@ function renderPanel(){
       h += '<div class="panelbtns noprint">';
       h += '<button type="button" class="'+(pk.done?"":"primary")+'" id="peakDoneBtn">'
         + (pk.done ? "達成を取り消す" : "☀ 達成した！（頂上を光らせる）") + '</button>';
-      if(editMode) h += '<button type="button" id="editItemBtn">書き換える</button>' + delButton();
+      /* 書き換えるは編集モードに入らなくても使える。消すのは編集モードのときだけ */
+      h += '<button type="button" id="editItemBtn">書き換える</button>';
+      if(editMode) h += delButton();
       h += '<button type="button" id="closeBtn">とじる</button></div>';
     }else{
       var v = pk || {title:"",amount:"",due:"",detail:""};
@@ -2120,7 +2155,8 @@ function renderPanel(){
       h += '<div class="panelbtns noprint">';
       h += '<button type="button" class="'+(state.goal.done?"":"primary")+'" id="goalDoneBtn">'
         + (state.goal.done ? "達成を取り消す" : "🎉 登頂した！") + '</button>';
-      if(editMode) h += '<button type="button" id="editItemBtn">書き換える</button>';
+      /* 書き換えるは編集モードに入らなくても使える（ゴールに削除は無い） */
+      h += '<button type="button" id="editItemBtn">書き換える</button>';
       h += '<button type="button" id="closeBtn">とじる</button></div>';
     }else{
       var v = state.goal;
@@ -2457,6 +2493,27 @@ $("tabbar").addEventListener("keydown", function(e){
   /* 日本語入力の変換確定のEnterでは決めない（Safariは isComposing を立てず 229 を返す） */
   if(e.key === "Enter" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); renameTab(); }
   else if(e.key === "Escape"){ tabDraft = null; render(); }
+});
+/* 見出しを変える欄（編集モードに入らなくても使える）。
+   開く・やめるはここだけの操作で、決める（renameTab）は入れ物をタブの帯と共有している */
+$("titleEditZone").addEventListener("click", function(e){
+  var b = e.target.closest ? e.target.closest("button") : null;
+  if(!b) return;
+  if(b.id === "titleEditOpenBtn"){
+    titleEditOpen = true; tabDraft = null; render();
+    var inp = $("tabname"); if(inp){ inp.focus(); inp.select(); }
+    return;
+  }
+  if(b.id === "titleEditCancelBtn"){ titleEditOpen = false; tabDraft = null; render(); return; }
+  if(b.dataset.tabrename){ renameTab(); return; }
+});
+$("titleEditZone").addEventListener("input", function(e){
+  if(e.target.id === "tabname") tabDraft = e.target.value;
+});
+$("titleEditZone").addEventListener("keydown", function(e){
+  if(e.target.id !== "tabname") return;
+  if(e.key === "Enter" && !e.isComposing && e.keyCode !== 229){ e.preventDefault(); renameTab(); }
+  else if(e.key === "Escape"){ titleEditOpen = false; tabDraft = null; render(); }
 });
 $("ownerbar").addEventListener("click", function(e){
   var b = e.target.closest ? e.target.closest("[data-owner]") : null;
