@@ -2678,8 +2678,9 @@ $("editBtn").addEventListener("click", function(){
    beforeprint が出たかどうかで判定し、無視されたら印刷用ファイルの保存に切り替える。 */
 var bpFired = false, printBlocked = false;
 window.addEventListener("beforeprint", function(){ bpFired = true; });
-function printDoc(forView){
-  var css = ""
+/* 印刷用ファイルと手書き用の紙で共通の見た目（本体のトークン・図・カード）。本体のCSSを変えたらここも合わせる */
+function sheetBaseCss(){
+  return ""
     /* 紙は白なのでライトテーマの値をそのまま置く（本体のトークンを変えたらここも合わせる） */
     + ':root{--paper:#fff;--card:#fff;--ink:#22303A;--sub:#56676F;--line:#D5DED8;'
     + '--ridge:#33526A;--ridge-soft:rgba(51,82,106,.10);--ridge-far:rgba(51,82,106,.05);'
@@ -2773,7 +2774,10 @@ function printDoc(forView){
     + '.goal-ring{fill:var(--accent-soft);stroke:var(--accent);stroke-width:3}'
     + '.goal-ring2{fill:none;stroke:var(--accent);stroke-width:1.5}'
     + '.goal-title{font-family:"Zen Old Mincho",serif;font-size:18px;font-weight:600}'
-    + '.goal-sub{font-size:12px;fill:var(--sub)}.noprint{display:none}'
+    + '.goal-sub{font-size:12px;fill:var(--sub)}.noprint{display:none}';
+}
+function printDoc(forView){
+  var css = sheetBaseCss()
     /* 壁に貼る1枚目＝図＋チェックリスト。A4横を横に分けて使う（本人指示 2026-09-21）。
        詳しいカードは2枚目に回す */
     + '.fig{min-width:0}.fig svg{width:100%;height:auto;max-height:97mm}'
@@ -2842,32 +2846,30 @@ function writeRows(n){
   for(var i=0;i<n;i++) h += '<div class="wirow"><span class="wibox"></span></div>';
   return h;
 }
-/* ---------- 手書き用の紙（A3横・中身は空） ----------
-   山ごとの欄に、□を打って手で箇条書きできる行を並べる。先に紙で下書きしてから入力する、
+/* ---------- 手書き用の紙（A3横・山図つき・箇条書きの欄は空） ----------
+   上に山図、その下に山ごとの欄を置き、□を打って手で箇条書きできる行を並べる。先に紙で下書きしてから入力する、
    会議の場で書き込む、といった使い方のため（本人指示 2026-10-06）。
    山の名前だけは見出しに入れる（どの山の欄か分かるように）。小目標は入れない */
 function templateDoc(forFile){
-  var n = state.peaks.length, cols = Math.min(Math.max(n,1), 4), rows = n <= 4 ? 17 : 6;
-  var css = ':root{--ink:#22303A;--sub:#56676F;--line:#C7D2CB;--ridge:#33526A}'
-    + '*{box-sizing:border-box}html,body{margin:0;padding:0}'
-    + 'body{background:#fff;color:var(--ink);font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",'
-    + '"Yu Gothic",sans-serif;font-size:14px;line-height:1.6}'
-    + '.sheet{padding:14px 18px}'
-    + '.bar{display:flex;gap:12px;align-items:center;justify-content:space-between;'
-    + 'background:#F2F5F1;border-bottom:1px solid var(--line);padding:10px 18px}'
-    + '.bar p{margin:0;font-size:13px;color:var(--sub)}'
-    + '.bar button{font:inherit;font-size:14px;cursor:pointer;border:1px solid var(--ridge);'
-    + 'background:var(--ridge);color:#fff;border-radius:8px;padding:8px 18px}'
-    + 'h1{font-family:"Zen Old Mincho",serif;font-weight:900;font-size:20px;margin:0;letter-spacing:.03em}'
-    + '.meta{display:flex;gap:28px;margin:6px 0 10px;font-size:12px;color:var(--sub)}'
+  var n = state.peaks.length, cols = Math.min(Math.max(n,1), 4), rows = n <= 4 ? 7 : 3;
+  var css = sheetBaseCss()
+    + '.meta{display:flex;gap:28px;margin:4px 0 4px;font-size:12px;color:var(--sub)}'
     + '.meta span{flex:1 1 0;border-bottom:1px solid var(--line);padding-bottom:2px;white-space:nowrap}'
-    + '.grid{display:grid;grid-template-columns:repeat(' + cols + ',minmax(0,1fr));gap:14px 9mm}'
+    /* 山図は「1枚に収まるか」の実測で決めた高さ。変えたら必ず verify_paper.py を通す */
+    + '.fig{min-width:0}.fig svg{width:100%;height:auto;max-height:94mm}'
+    + '.plegend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:2px;font-size:10.5px;color:var(--sub)}'
+    + '.plegend b{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}'
+    + '.plegend i{display:inline-block;width:22px;height:0;margin-right:5px;vertical-align:4px}'
+    + '.plegend i.lgsolid{border-top:3.5px solid var(--ridge)}'
+    + '.plegend i.lgdots{border-top:3.5px dotted var(--st-todo)}'
+    + '.grid{display:grid;grid-template-columns:repeat(' + cols + ',minmax(0,1fr));gap:8px 9mm;margin-top:8px}'
     + '.col{min-width:0;break-inside:avoid;page-break-inside:avoid}'
-    + '.col h2{font-family:"Zen Old Mincho",serif;font-size:13.5px;margin:0 0 2px;line-height:1.4;'
+    + '.col h2{font-family:"Zen Old Mincho",serif;font-size:13px;margin:0 0 1px;line-height:1.4;'
     + 'border-bottom:2px solid var(--ridge);padding-bottom:3px}'
-    + '.wirow{display:flex;align-items:flex-end;gap:7px;height:9mm;border-bottom:1px solid var(--line)}'
+    /* 見出しは1行に固定する。名前が長くて2行になると、紙が2枚に割れる（全文は山図に出る） */
+    + '.col h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+    + '.wirow{display:flex;align-items:flex-end;gap:7px;height:8.6mm;border-bottom:1px solid var(--line)}'
     + '.wibox{flex:none;width:13px;height:13px;border:1.5px solid var(--ink);border-radius:3px;margin-bottom:3px}'
-    + '.goal{margin-top:12px;font-size:12px;color:var(--sub)}'
     + '@page{size:A3 landscape;margin:9mm}'
     + '@media print{html{zoom:1.4142}.bar{display:none}.sheet{padding:0}}';
   var cs = "";
@@ -2879,8 +2881,16 @@ function templateDoc(forFile){
         + '<button type="button" onclick="window.print()">印刷する</button></div>' : '')
     + '<div class="sheet"><h1>' + esc(state.title||"登頂ロードマップ") + '（手書き用）</h1>'
     + '<div class="meta"><span>期間　　／　　〜　　／</span><span>名前</span></div>'
-    + '<div class="grid">' + cs + '</div>'
-    + '<p class="goal">🚩 ゴール：' + esc(state.goal.title||"") + '</p></div>'
+    + '<div class="fig">' + chartMarkup(true, false)
+    + '<div class="plegend">'
+    + '<span><b style="background:var(--st-done)"></b>できた</span>'
+    + '<span><b style="background:var(--st-soon)"></b>早めにやる</span>'
+    + '<span><b style="background:var(--st-urgent)"></b>急ぎ</span>'
+    + '<span><b style="background:var(--st-todo)"></b>これから</span>'
+    + '<span><i class="lgsolid"></i>登った道</span>'
+    + '<span><i class="lgdots"></i>これから登る道</span>'
+    + '</div></div>'
+    + '<div class="grid">' + cs + '</div></div>'
     + (forFile ? "<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},600)})<\/script>" : '');
   return '<!doctype html>\n<html lang="ja"><head><meta charset="utf-8"><title>' + esc(state.title||"登頂ロードマップ")
     + '（手書き用）</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;900'
