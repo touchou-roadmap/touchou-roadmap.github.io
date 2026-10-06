@@ -508,7 +508,10 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
   .donehalo,.glow,.badge.done,.donechip,.pknum.done,.peakhalo{animation:none}
 }
 @media print{
-  @page{size:A4 landscape;margin:9mm}
+  /* 既定の用紙はA3横（本人指示 2026-10-06）。レイアウトはA4横で寸法を詰めてあるので、
+     ページだけA3にして中身を√2倍（A4→A3の倍率）に拡大し、1枚に収まる配置をそのまま使う */
+  @page{size:A3 landscape;margin:9mm}
+  html{zoom:1.4142}
   body{background:#fff;color:#22303A}
   .noprint{display:none!important}
   .wrap{max-width:none;padding:0}
@@ -2797,8 +2800,8 @@ function printDoc(forView){
     + '.list ul{margin:0;padding-left:0;list-style:none}.list li{margin:4px 0}'
     + '.list .mark{display:inline-block;width:13px;height:13px;border:1.5px solid var(--ink);'
     + 'border-radius:50%;margin-right:7px;vertical-align:-2px}.list .pmeta{color:var(--sub)}'
-    + '@page{size:A4 landscape;margin:9mm}'
-    + '@media print{.bar{display:none}.sheet{padding:0}.cardpage{padding:0}}';
+    + '@page{size:A3 landscape;margin:9mm}'
+    + '@media print{html{zoom:1.4142}.bar{display:none}.sheet{padding:0}.cardpage{padding:0}}';
   var head = '<meta charset="utf-8"><title>' + esc(state.title||"登頂ロードマップ") + '（印刷用）</title>'
     + '<link rel="preconnect" href="https://fonts.googleapis.com">'
     + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;900'
