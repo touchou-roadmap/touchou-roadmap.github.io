@@ -548,9 +548,10 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
   /* 余った下の帯は、書き込み欄にする（意味のない余白にしない） */
   .writein{order:4;flex:1 1 100%;display:block;margin-top:8px;
     break-inside:avoid;page-break-inside:avoid}
-  .wihd{font-size:12px;font-weight:700;color:#26333B;display:flex;gap:14px;align-items:baseline}
-  .wiweek{font-weight:400;color:#5D6F77;font-size:11px}
-  .wiline{border-bottom:1px solid #C7D2CB;height:8.5mm}
+  /* 手で箇条書きする欄。□を打って、右の線に書く（本人指示 2026-10-06「今週やること」ではなくチェックボックス） */
+  .wirows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:9mm}
+  .wirow{display:flex;align-items:flex-end;gap:7px;height:8.5mm;border-bottom:1px solid #C7D2CB}
+  .wibox{flex:none;width:13px;height:13px;border:1.5px solid #26333B;border-radius:3px;margin-bottom:3px}
   /* 注意書きは1枚目の下に小さく収める（2枚目にこぼすと、紙が2枚になってしまう） */
   .srcnote{order:5;flex:1 1 100%;font-size:9.5px;line-height:1.5;margin-top:7px;max-width:none}
   /* 山ひとつぶん（見出し＋小目標）はページの途中で切らない */
@@ -673,6 +674,7 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
     <div class="hdr-right">
       <button id="editBtn">編集モード</button>
       <button id="printBtn" class="primary">印刷・PDFにする</button>
+      <button id="tplBtn">手書き用の紙</button>
       <!-- 公開版（claude.ai の外）だけで出す。中身は端末のブラウザに保存されるので、
            控えを取る・別の端末へ移すための書き出し／読み込みを置く -->
       <button id="exportBtn" hidden>ファイルに書き出す</button>
@@ -696,8 +698,7 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
   <!-- 紙に貼ってから書き込む欄。画面には出さない（印刷のときだけ出る）。
        壁に貼って毎日見る使い方なので、今週の行動をその場で書けるようにしておく -->
   <div class="writein" id="writein" aria-hidden="true">
-    <div class="wihd">今週やること（ペンで書く）<span class="wiweek">週：　　／　　　〜　　／　　</span></div>
-    <div class="wiline"></div><div class="wiline"></div>
+    <div class="wirows" id="wirows"></div>
   </div>
 </div>
 <div data-app class="saving" id="toast" role="status" aria-live="polite"></div>
@@ -1341,6 +1342,7 @@ function render(){
   renderChart();
   $("cards").innerHTML = cardsMarkup(editMode, false);
   renderPrintList();
+  $("wirows").innerHTML = writeRows(6);
   renderPanel();
 }
 
@@ -2786,9 +2788,9 @@ function printDoc(forView){
     + '.list{min-width:0;font-size:11px;margin-top:6px;columns:3;column-gap:9mm}'
     /* 余った下の帯は書き込み欄にする（本体の @media print と同じ作り） */
     + '.writein{margin-top:10px;break-inside:avoid;page-break-inside:avoid}'
-    + '.wihd{font-size:12px;font-weight:700;display:flex;gap:14px;align-items:baseline}'
-    + '.wiweek{font-weight:400;color:var(--sub);font-size:11px}'
-    + '.wiline{border-bottom:1px solid var(--line);height:8mm}'
+    + '.wirows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:9mm}'
+    + '.wirow{display:flex;align-items:flex-end;gap:7px;height:8mm;border-bottom:1px solid var(--line)}'
+    + '.wibox{flex:none;width:13px;height:13px;border:1.5px solid var(--ink);border-radius:3px;margin-bottom:3px}'
     + '.psrc{margin:6px 0 0;font-size:9px;color:var(--sub);line-height:1.45}'
     + '.list .psec{break-inside:avoid;page-break-inside:avoid}'
     + '.list h2{font-size:12.5px;margin:0 0 6px;column-span:all}'
@@ -2826,15 +2828,104 @@ function printDoc(forView){
     + '<span><i class="lgdots"></i>これから登る道</span>'
     + '</div></div>'
     + '<div class="list">' + $("printlist").innerHTML + '</div>'
-    + '<div class="writein"><div class="wihd">今週やること（ペンで書く）'
-    + '<span class="wiweek">週：　　／　　　〜　　／　　</span></div>'
-    + '<div class="wiline"></div><div class="wiline"></div></div>'
+    + '<div class="writein"><div class="wirows">' + writeRows(6) + '</div></div>'
     + '<p class="psrc">' + esc(($("srcnote").textContent || "").trim()) + '</p>'
     + '</div>'
     + '<div class="cardpage"><h2>くわしい中身（担当・期日・メモ）</h2>'
     + cardsMarkup(false, true) + '</div>'
     + (forView ? '' : "<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},600)})<\/script>");
   return '<!doctype html>\n<html lang="ja"><head>' + head + '</head><body>' + body + '</body></html>';
+}
+/* 手で箇条書きするための「□＋線」の行 */
+function writeRows(n){
+  var h = "";
+  for(var i=0;i<n;i++) h += '<div class="wirow"><span class="wibox"></span></div>';
+  return h;
+}
+/* ---------- 手書き用の紙（A3横・中身は空） ----------
+   山ごとの欄に、□を打って手で箇条書きできる行を並べる。先に紙で下書きしてから入力する、
+   会議の場で書き込む、といった使い方のため（本人指示 2026-10-06）。
+   山の名前だけは見出しに入れる（どの山の欄か分かるように）。小目標は入れない */
+function templateDoc(forFile){
+  var n = state.peaks.length, cols = Math.min(Math.max(n,1), 4), rows = n <= 4 ? 17 : 6;
+  var css = ':root{--ink:#22303A;--sub:#56676F;--line:#C7D2CB;--ridge:#33526A}'
+    + '*{box-sizing:border-box}html,body{margin:0;padding:0}'
+    + 'body{background:#fff;color:var(--ink);font-family:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",'
+    + '"Yu Gothic",sans-serif;font-size:14px;line-height:1.6}'
+    + '.sheet{padding:14px 18px}'
+    + '.bar{display:flex;gap:12px;align-items:center;justify-content:space-between;'
+    + 'background:#F2F5F1;border-bottom:1px solid var(--line);padding:10px 18px}'
+    + '.bar p{margin:0;font-size:13px;color:var(--sub)}'
+    + '.bar button{font:inherit;font-size:14px;cursor:pointer;border:1px solid var(--ridge);'
+    + 'background:var(--ridge);color:#fff;border-radius:8px;padding:8px 18px}'
+    + 'h1{font-family:"Zen Old Mincho",serif;font-weight:900;font-size:20px;margin:0;letter-spacing:.03em}'
+    + '.meta{display:flex;gap:28px;margin:6px 0 10px;font-size:12px;color:var(--sub)}'
+    + '.meta span{flex:1 1 0;border-bottom:1px solid var(--line);padding-bottom:2px;white-space:nowrap}'
+    + '.grid{display:grid;grid-template-columns:repeat(' + cols + ',minmax(0,1fr));gap:14px 9mm}'
+    + '.col{min-width:0;break-inside:avoid;page-break-inside:avoid}'
+    + '.col h2{font-family:"Zen Old Mincho",serif;font-size:13.5px;margin:0 0 2px;line-height:1.4;'
+    + 'border-bottom:2px solid var(--ridge);padding-bottom:3px}'
+    + '.wirow{display:flex;align-items:flex-end;gap:7px;height:9mm;border-bottom:1px solid var(--line)}'
+    + '.wibox{flex:none;width:13px;height:13px;border:1.5px solid var(--ink);border-radius:3px;margin-bottom:3px}'
+    + '.goal{margin-top:12px;font-size:12px;color:var(--sub)}'
+    + '@page{size:A3 landscape;margin:9mm}'
+    + '@media print{html{zoom:1.4142}.bar{display:none}.sheet{padding:0}}';
+  var cs = "";
+  for(var i=0;i<n;i++){
+    cs += '<section class="col"><h2>山' + (i+1) + '　' + esc(state.peaks[i].title) + '</h2>' + writeRows(rows) + '</section>';
+  }
+  var body = (forFile
+      ? '<div class="bar"><p>手書き用の紙です。印刷すると、□に印を付けながら箇条書きできます。</p>'
+        + '<button type="button" onclick="window.print()">印刷する</button></div>' : '')
+    + '<div class="sheet"><h1>' + esc(state.title||"登頂ロードマップ") + '（手書き用）</h1>'
+    + '<div class="meta"><span>期間　　／　　〜　　／</span><span>名前</span></div>'
+    + '<div class="grid">' + cs + '</div>'
+    + '<p class="goal">🚩 ゴール：' + esc(state.goal.title||"") + '</p></div>'
+    + (forFile ? "<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},600)})<\/script>" : '');
+  return '<!doctype html>\n<html lang="ja"><head><meta charset="utf-8"><title>' + esc(state.title||"登頂ロードマップ")
+    + '（手書き用）</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;900'
+    + '&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap"><style>' + css + '<\/style></head><body>'
+    + body + '</body></html>';
+}
+/* 画面の中に手書き用の紙を出して、そこから印刷・保存する。
+   Artifactの中は印刷が止められているので、押して何も起きない形にならないよう、
+   印刷できなかったときは「保存」へ案内する */
+function showTemplateSheet(){
+  if(sheetEl) hidePrintSheet();
+  sheetEl = document.createElement("div");
+  sheetEl.className = "sheetview noprint";
+  var inApp = LOCAL && inAppBrowser();
+  sheetEl.innerHTML = '<div class="sheetbar"><span>手書き用の紙です（A3横）。□に印を付けながら、手で箇条書きできます。</span>'
+    + '<span class="sheetbtns">'
+    + (inApp ? '' : '<button type="button" class="primary" id="tplPrint">印刷する</button>'
+               + '<button type="button" id="tplSave">ファイルに保存</button>')
+    + '<button type="button" id="sheetClose">とじる</button></span></div>'
+    + '<iframe class="sheetframe" id="sheetFrame" title="手書き用の紙"></iframe>';
+  document.body.appendChild(sheetEl);
+  $("sheetFrame").setAttribute("srcdoc", templateDoc(false));
+  $("sheetClose").addEventListener("click", hidePrintSheet);
+  var pb = $("tplPrint"), sb = $("tplSave");
+  if(pb) pb.addEventListener("click", function(){
+    var w = $("sheetFrame").contentWindow, fired = false;
+    try{ w.addEventListener("beforeprint", function(){ fired = true; }); w.focus(); w.print(); }catch(e){}
+    setTimeout(function(){
+      if(!fired) toast("この画面では印刷できません。「ファイルに保存」して、そのファイルを開いて印刷してください", true);
+    }, 400);
+  });
+  if(sb) sb.addEventListener("click", function(){
+    var name = safeName(state.title) + "_手書き用.html";
+    if(downloadsApi){
+      downloadsApi.save({ filename:name, data:templateDoc(true) }).then(function(){
+        toast("保存しました。そのファイルを開くと印刷できます");
+      }).catch(function(err){
+        if(err && err.code === "declined") toast("保存をやめました");
+        else toast("保存できませんでした。もう一度おためしください", true);
+      });
+    }else{
+      downloadBlob(name, templateDoc(true), "text/html");
+      toast("手書き用のファイルを保存しました。そのファイルを開くと印刷できます");
+    }
+  });
 }
 function savePrintFile(){
   if(!downloadsApi && LOCAL){
@@ -2987,6 +3078,7 @@ $("printBtn").addEventListener("click", function(){
     printFallback();
   }, 250);
 });
+$("tplBtn").addEventListener("click", showTemplateSheet);
 $("addPeakBtn").addEventListener("click", function(){
   sel = {kind:"peak", id:null}; panelMode = "new"; renderPanel();
   $("panel").scrollIntoView({behavior:"smooth", block:"nearest"});
