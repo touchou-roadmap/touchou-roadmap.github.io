@@ -247,6 +247,9 @@ button.donebtn.sm{font-size:var(--t-cap);padding:0 10px}
 /* 公開版だけの一言。どこに保存されるかは、使う人が知っておくべきことなので出す */
 .localnote{flex:1 1 100%;margin:0;color:var(--sub);font-size:var(--t-cap);line-height:1.7;max-width:52em}
 .localnote a{color:var(--accent);font-weight:700;margin-left:6px}
+/* iPhone・iPadだけ出す印刷の注意。iOSの制約はページ側から直せないので、隠さずに書く */
+.iosnote{flex:1 1 100%;margin:0;color:var(--st-urgent);font-size:var(--t-cap);line-height:1.7;max-width:52em}
+.iosnote b{font-weight:700}
 /* 図は「カード」に入れず紙面に直接置く。全部を同じ角丸の箱にすると階層が平らに見え、
    量産テンプレートの見た目に寄る。上下の細い罫だけで領域を示す */
 .chartbox{margin-top:0;overflow-x:auto;overflow-y:hidden;
@@ -508,10 +511,15 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
   .donehalo,.glow,.badge.done,.donechip,.pknum.done,.peakhalo{animation:none}
 }
 @media print{
-  /* 既定の用紙はA3横（本人指示 2026-10-06）。レイアウトはA4横で寸法を詰めてあるので、
-     ページだけA3にして中身を√2倍（A4→A3の倍率）に拡大し、1枚に収まる配置をそのまま使う */
+  /* 既定の用紙はA3横（本人指示 2026-10-06）。レイアウトはA4横で寸法を詰めてあり、
+     A4をちょうど√2倍（A4→A3の倍率）に拡大すると面積比はそのまま＝A4に入る分しか入らない
+     （A列の用紙はどのサイズでも縦横比が同じため、ただ拡大するだけでは容量は増えない）。
+     小目標が少ないうちは√2倍で大きく・読みやすく、多いときは倍率を1.0へ近づけて
+     A3の面積を本当に使い切ることで、同じ配置のまま1枚に入る数を増やす
+     （本人指摘 2026-10-06「多少量があっても1ページになるように自動で調整して」）。
+     倍率は render() が printZoom() で計算して :root に書く。変えたら必ず verify_paper.py を通す */
   @page{size:A3 landscape;margin:9mm}
-  html{zoom:1.4142}
+  html{zoom:var(--print-zoom, 1.4142)}
   body{background:#fff;color:#22303A}
   .noprint{display:none!important}
   .wrap{max-width:none;padding:0}
@@ -684,6 +692,11 @@ button.tdel{flex:none;font-size:var(--t-cap);color:var(--st-urgent);border-color
     <p class="localnote" id="localnote" hidden>書いた内容は、この端末のこのブラウザにだけ保存されます（ほかの人には見えません）。
       ブラウザの履歴やサイトのデータを消すと消えるので、ときどき「ファイルに書き出す」で控えを取ってください。
       <a id="manualLink" href="https://touchou-roadmap.github.io/manual/" target="_blank" rel="noopener">使いかた</a></p>
+    <!-- iPhone・iPadだけ出す。iOSは印刷の画面の用紙サイズ・向きをページ側から決められず、
+         CSSの @page を無視してA4縦のまま開く（本人指摘2026-10-06。iOS Safariの既知の制約で、
+         コードでは直せない。README「iOSでは印刷の初期値を直せない」参照） -->
+    <p class="iosnote" id="iosnote" hidden>⚠ iPhone・iPadでは、印刷の画面で<b>用紙サイズ「A3」・向き「横向き」</b>を選びなおしてください。
+      初期値はA4縦のままで開きます（iOSの仕様で、ここから直すことはできません）。</p>
   </footer>
   <div class="edittools noprint" id="edittools">
     <button id="addPeakBtn">＋ 山（中間目標）を追加</button>
@@ -1312,8 +1325,31 @@ function buildGeometry(c){
 function slopeAnchor(g, i){ return i===0 ? g.start : g.valleys[i-1]; }
 function onSlope(a, b, t){ return { x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t }; }
 
+/* ---------- 紙の拡大率（A3） ----------
+   A列の用紙はどのサイズでも縦横比が同じなので、A4設計をそのまま拡大するだけでは
+   A3に変えても入る量は増えない（面積の比率は変わらないため）。
+   小目標が少ないうちは√2倍（1.4142。A4→A3のちょうどの倍率）で大きく・読みやすくし、
+   多いときは倍率を1.0（＝拡大なし。A3の面積をそのまま使う）へなめらかに近づけることで、
+   同じ文字の大きさ・同じ配置のまま、紙が広がったぶんだけ入る数を増やす
+   （本人指摘 2026-10-06「多少量があっても1ページになるように自動で調整して」）。
+   境目は実測で決めた（verify_paper.py の「ふつうの量」「多め」節）。
+   それでも入らないほど多いときは、無理に文字を潰さず1.0で止めて2枚目へ逃がす
+   （詳しいカードと同じ考え方。1ページに収める無理よりデータが消えないことを優先） */
+function printZoom(){
+  var rows = state.peaks.length + state.steps.length;
+  var FULL = 12, FLOOR = 34;   /* FULL以下はそのまま√2倍、FLOOR以上は1.0で止める */
+  if(rows <= FULL) return 1.4142;
+  if(rows >= FLOOR) return 1.0;
+  var t = (rows - FULL) / (FLOOR - FULL);
+  return 1.4142 - t * (1.4142 - 1.0);
+}
+
 /* ---------- 描画 ---------- */
 function render(){
+  /* 画面からの直接印刷（@media print の html{zoom:var(--print-zoom)}）が使う。
+     印刷のたびに計算するのではなく、ここで毎回最新の値を置いておく
+     （印刷の瞬間に state を読みに行く仕掛けより、常に正しい値を置いておくほうが単純） */
+  document.documentElement.style.setProperty("--print-zoom", printZoom());
   /* タブの帯は、大きい目標が2枚以上あるときと編集モードのときだけ出す。
      1枚しか無いのに帯を出すと、画面のいちばん上が図でなくなる
      （「画面は山の図から始める」本人指示 2026-09-19。verify_now.py が見張っている） */
@@ -2807,7 +2843,8 @@ function printDoc(forView){
     + '.list .mark{display:inline-block;width:13px;height:13px;border:1.5px solid var(--ink);'
     + 'border-radius:50%;margin-right:7px;vertical-align:-2px}.list .pmeta{color:var(--sub)}'
     + '@page{size:A3 landscape;margin:9mm}'
-    + '@media print{html{zoom:1.4142}.bar{display:none}.sheet{padding:0}.cardpage{padding:0}}';
+    /* 小目標が多いときに1枚へ収めるための拡大率は printZoom() を参照 */
+    + '@media print{html{zoom:' + printZoom() + '}.bar{display:none}.sheet{padding:0}.cardpage{padding:0}}';
   var head = '<meta charset="utf-8"><title>' + esc(state.title||"登頂ロードマップ") + '（印刷用）</title>'
     + '<link rel="preconnect" href="https://fonts.googleapis.com">'
     + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;900'
@@ -2965,6 +3002,16 @@ function savePrintFile(){
     else if(code === "rate_limited"){ toast("少し待ってから、もう一度押してください", true); }
     else { showPrintHelp(); }
   });
+}
+/* ---------- iPhone・iPad での印刷の注意 ----------
+   iOS Safari は印刷の画面の用紙サイズ・向きの初期値を、ページの @page CSS から
+   決められない（WebKitの既知の制約。Safari 11以降ずっとこの状態で、ページ側に回避策は無い。
+   本人報告2026-10-06「iPhoneから印刷ボタン押したけど既定がA4縦になってた」で発覚）。
+   直せないものを直せるふりをせず、「用紙サイズ A3・横向きを選びなおす」と文で示す */
+function isIOS(){
+  var u = (navigator && navigator.userAgent) || "";
+  /* iPadは iOS13 以降、UAがMacと同じになる。タッチ対応のMacとして見分ける */
+  return /iPhone|iPad|iPod/.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1);
 }
 /* ---------- アプリの中のブラウザ（LINEなど）での印刷 ----------
    LINE・Facebook・Instagram などの中で開いたページは、印刷もファイルの保存も
@@ -3130,6 +3177,8 @@ if(LOCAL){
 }
 restoreTabIdx();   /* しぼり込みの復元より先。担当の一覧はタブごとに違う */
 var restoredOwner = restoreOwnerFilter();
+/* claude.ai の中・公開版のどちらでも、iPhone・iPadなら出す（印刷の既定が直せない制約のため） */
+if(isIOS()) $("iosnote").hidden = false;
 render();
 if(restoredOwner) toast("「" + restoredOwner + "」でしぼって表示しています（この端末だけ）");
 
